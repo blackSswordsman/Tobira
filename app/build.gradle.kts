@@ -3,13 +3,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.escaperoomapp"
+    namespace = "com.example.tobira"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.escaperoomapp"
+        applicationId = "com.example.tobira"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
@@ -35,6 +35,8 @@ android {
 dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
+    implementation(libs.maplibre)
+    implementation(libs.okhttp)
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)

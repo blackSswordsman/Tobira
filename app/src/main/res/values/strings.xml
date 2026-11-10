@@ -1,13 +1,35 @@
 <resources>
-    <string name="app_name">KAMI NO KURUMA</string>
+    <string name="app_name">Tobira</string>
     <string name="game_title">KAMI NO KURUMA</string>
     <string name="game_subtitle">神の車</string>
-    <string name="start_game">START GAME</string>
+    <string name="start_game">ゲームを始める</string>
     <string name="earth_seal_chapter">CHAPTER 01</string>
     <string name="earth_seal_title">EARTH SEAL</string>
     <string name="earth_seal_subtitle">大地の封印</string>
     <string name="earth_seal_instruction">Two guardians must take their places to unlock the seal.</string>
-    <string name="simulate_success">SIMULATE SUCCESS</string>
+    <string name="simulate_success">クリアをシミュレート</string>
     <string name="earth_seal_unlocked">EARTH SEAL UNLOCKED</string>
-    <string name="back_to_start">BACK TO START</string>
+    <string name="back_to_start">スタート画面に戻る</string>
+    <string name="open_map">地図を開く</string>
+    <string name="map_title">Карта</string>
+    <string name="my_location">現在地</string>
+    <string name="back">戻る</string>
+    <string name="map_loading">Загрузка карты…</string>
+    <string name="map_error">Не удалось загрузить карту. Проверьте интернет и нажмите «再試行».</string>
+    <string name="retry">再試行</string>
+    <string name="location_searching">Определяем местоположение…</string>
+    <string name="location_waiting">Пока нет сигнала местоположения. Выйдите на открытое место или задайте координаты в эмуляторе.</string>
+    <string name="location_ready">Ваше местоположение</string>
+    <string name="location_approximate">Ваше приблизительное местоположение</string>
+    <string name="location_permission_title">Доступ к местоположению</string>
+    <string name="location_permission_reason">Tobira нужен доступ к геолокации, чтобы показать ваше местоположение на карте.</string>
+    <string name="location_denied">Местоположение недоступно без разрешения. Карту можно просматривать вручную.</string>
+    <string name="location_settings_reason">Разрешите доступ к местоположению в настройках приложения, затем нажмите «現在地».</string>
+    <string name="location_disabled">Включите определение местоположения в настройках устройства.</string>
+    <string name="settings">設定</string>
+    <string name="continue_action">続ける</string>
+    <string name="cancel">キャンセル</string>
+    <string name="osm_attribution"><a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a></string>
+    <string name="map_style" translatable="false">{\"version\":8,\"sources\":{\"osm\":{\"type\":\"raster\",\"tiles\":[\"https://tile.openstreetmap.org/{z}/{x}/{y}.png\"],\"tileSize\":256,\"maxzoom\":19,\"attribution\":\"© OpenStreetMap contributors\"}},\"layers\":[{\"id\":\"osm\",\"type\":\"raster\",\"source\":\"osm\"}]}</string>
+    <string name="map_not_connected">Карта пока не подключена.</string>
 </resources>

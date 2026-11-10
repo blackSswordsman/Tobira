@@ -12,39 +12,21 @@
         android:orientation="vertical"
         android:padding="32dp">
 
-        <LinearLayout
-            android:id="@+id/start_screen"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="@string/game_title"
-                android:textSize="32sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="@string/game_subtitle"
-                android:textSize="24sp" />
-
-            <Button
-                android:id="@+id/start_game_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:minWidth="240dp"
-                android:minHeight="64dp"
-                android:text="@string/start_game"
-                android:textSize="20sp" />
-        </LinearLayout>
-
-        <include layout="@layout/screen_earth_seal" />
+            android:text="@string/app_name"
+            android:textSize="40sp"
+            android:textStyle="bold" />
+        <Button
+            android:id="@+id/open_map_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:minHeight="64dp"
+            android:minWidth="240dp"
+            android:text="@string/open_map"
+            android:textSize="20sp" />
     </LinearLayout>
 </ScrollView>
