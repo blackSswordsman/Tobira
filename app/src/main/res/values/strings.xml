@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">KAMI NO KURUMA</string>
+    <string name="game_title">KAMI NO KURUMA</string>
+    <string name="game_subtitle">神の車</string>
+    <string name="start_game">START GAME</string>
+    <string name="earth_seal_chapter">CHAPTER 01</string>
+    <string name="earth_seal_title">EARTH SEAL</string>
+    <string name="earth_seal_subtitle">大地の封印</string>
+    <string name="earth_seal_instruction">Two guardians must take their places to unlock the seal.</string>
+    <string name="simulate_success">SIMULATE SUCCESS</string>
+    <string name="earth_seal_unlocked">EARTH SEAL UNLOCKED</string>
+    <string name="back_to_start">BACK TO START</string>
+</resources>

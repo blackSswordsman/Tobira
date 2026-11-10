@@ -1,0 +1,18 @@
+# Local IDE and machine configuration
+/.idea/
+*.iml
+/local.properties
+.DS_Store
+
+# Generated build files
+.gradle/
+.kotlin/
+**/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing credentials
+*.jks
+*.keystore
+/keystore.properties
