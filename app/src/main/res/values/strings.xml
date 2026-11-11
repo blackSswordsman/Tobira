@@ -30,7 +30,7 @@
     <string name="continue_action">続ける</string>
     <string name="cancel">キャンセル</string>
     <string name="osm_attribution"><a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a></string>
-    <string name="map_style" translatable="false">{\"version\":8,\"sources\":{\"osm\":{\"type\":\"raster\",\"tiles\":[\"https://tile.openstreetmap.org/{z}/{x}/{y}.png\"],\"tileSize\":256,\"maxzoom\":19,\"attribution\":\"© OpenStreetMap contributors\"}},\"layers\":[{\"id\":\"osm\",\"type\":\"raster\",\"source\":\"osm\"}]}</string>
+    <string name="map_style_url" translatable="false">https://tiles.openfreemap.org/styles/liberty</string>
     <string name="map_not_connected">地図はまだ利用できません。</string>
     <string name="search_places">場所を検索</string>
     <string name="place_query_hint">場所の名前や住所</string>
@@ -56,7 +56,7 @@
     <string name="route_error">ルートを取得できませんでした。接続を確認して再試行してください。</string>
     <string name="route_rate_limited">しばらく待ってからルートを再検索してください。</string>
     <string name="route_summary">%1$.1f km ・ 約%2$d分（渋滞情報なし）</string>
-    <string name="route_attribution"><a href="https://project-osrm.org/">経路：OSRM</a> ・ <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a></string>
+    <string name="route_attribution"><a href="https://openfreemap.org/">OpenFreeMap</a> ・ <a href="https://openmaptiles.org/">© OpenMapTiles</a> ・ <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a> ・ <a href="https://project-osrm.org/">経路：OSRM</a></string>
     <string name="route_endpoint" translatable="false">https://router.project-osrm.org/route/v1/driving</string>
     <string name="photon_attribution"><a href="https://photon.komoot.io/">検索：Photon</a> ・ <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a></string>
     <string name="edit_route">ルートを編集</string>
@@ -77,4 +77,10 @@
     <string name="stop_limit">経由地は8か所まで追加できます。</string>
     <string name="route_order_hint">経由地は表示順に通過します。</string>
     <string name="route_plan_summary">出発地：%1$s → 経由地：%2$dか所 → 目的地：%3$s</string>
+    <string name="start_trip">走行開始</string>
+    <string name="end_trip">走行終了</string>
+    <string name="follow_vehicle">車両に戻る</string>
+    <string name="trip_following">走行中・現在地を追従しています</string>
+    <string name="trip_browsing">走行中・「車両に戻る」で追従を再開できます</string>
+    <string name="trip_waiting_gps">走行中・位置情報の更新を待っています</string>
 </resources>

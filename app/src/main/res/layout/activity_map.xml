@@ -51,6 +51,23 @@
         android:text="@string/build_route"
         android:visibility="gone" />
 
+    <Button
+        android:id="@+id/trip_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:text="@string/start_trip"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/trip_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:accessibilityLiveRegion="polite"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/route_summary"
         android:layout_width="match_parent"

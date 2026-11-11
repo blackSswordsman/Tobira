@@ -11,8 +11,15 @@ public final class Place {
     public final String address;
     public final double latitude;
     public final double longitude;
+    public final String osmType;
+    public final String osmId;
 
     public Place(String name, String address, double latitude, double longitude) {
+        this(name, address, latitude, longitude, null, null);
+    }
+
+    public Place(String name, String address, double latitude, double longitude,
+                 String osmType, String osmId) {
         if (name == null || name.trim().isEmpty() || address == null
                 || !Double.isFinite(latitude) || !Double.isFinite(longitude)
                 || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
@@ -22,6 +29,8 @@ public final class Place {
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.osmType = osmType;
+        this.osmId = osmId;
     }
 
     static Place fromJson(JSONObject json) throws JSONException {
@@ -48,7 +57,19 @@ public final class Place {
         }
         if (name.isEmpty() && !parts.isEmpty()) name = parts.iterator().next();
         return new Place(name, android.text.TextUtils.join(", ", parts),
-                coordinates.getDouble(1), coordinates.getDouble(0));
+                coordinates.getDouble(1), coordinates.getDouble(0),
+                normalizeOsmType(properties.optString("osm_type", "")),
+                properties.has("osm_id") && !properties.isNull("osm_id")
+                        ? properties.getString("osm_id") : null);
+    }
+
+    private static String normalizeOsmType(String type) {
+        return switch (type.toUpperCase(java.util.Locale.ROOT)) {
+            case "N", "NODE" -> "node";
+            case "W", "WAY" -> "way";
+            case "R", "RELATION" -> "relation";
+            default -> null;
+        };
     }
 
     public Bundle toBundle() {
@@ -57,6 +78,8 @@ public final class Place {
         bundle.putString("address", address);
         bundle.putDouble("latitude", latitude);
         bundle.putDouble("longitude", longitude);
+        bundle.putString("osmType", osmType);
+        bundle.putString("osmId", osmId);
         return bundle;
     }
 
@@ -64,7 +87,8 @@ public final class Place {
         if (bundle == null || !bundle.containsKey("latitude") || !bundle.containsKey("longitude")) return null;
         try {
             return new Place(bundle.getString("name"), bundle.getString("address"),
-                    bundle.getDouble("latitude"), bundle.getDouble("longitude"));
+                    bundle.getDouble("latitude"), bundle.getDouble("longitude"),
+                    bundle.getString("osmType"), bundle.getString("osmId"));
         } catch (IllegalArgumentException exception) {
             return null;
         }

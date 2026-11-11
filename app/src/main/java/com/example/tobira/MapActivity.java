@@ -30,6 +30,10 @@ import org.maplibre.android.MapLibre;
 import org.maplibre.android.camera.CameraUpdateFactory;
 import org.maplibre.android.geometry.LatLng;
 import org.maplibre.android.location.LocationComponentActivationOptions;
+import org.maplibre.android.location.LocationComponentOptions;
+import org.maplibre.android.location.OnCameraTrackingChangedListener;
+import org.maplibre.android.location.modes.CameraMode;
+import org.maplibre.android.location.modes.RenderMode;
 import org.maplibre.android.maps.MapLibreMap;
 import org.maplibre.android.maps.MapView;
 import org.maplibre.android.maps.Style;
@@ -53,6 +57,11 @@ public class MapActivity extends AppCompatActivity {
     private static final String START_SOURCE = "start-source";
     private static final String STOPS_SOURCE = "stops-source";
     private RoutePlan routePlan = new RoutePlan();
+    private static final String STATE_TRIP = "trip-session";
+    private final TripSession trip = new TripSession();
+    private final VehiclePosition vehiclePosition = new VehiclePosition();
+    private Button tripButton;
+    private TextView tripStatus;
     private static final String DESTINATION_SOURCE = "destination-source";
     private static final String DESTINATION_LAYER = "destination-layer";
     private static final String ROUTE_SOURCE = "route-source";
@@ -74,6 +83,7 @@ public class MapActivity extends AppCompatActivity {
                 RoutePlan selected = RoutePlan.fromBundle(
                         result.getData().getBundleExtra(RouteEditorActivity.EXTRA_PLAN));
                 if (!selected.isComplete()) return;
+                endTrip();
                 routeViewModel.clear();
                 routePlan = selected;
                 destination = routePlan.destination;
@@ -94,6 +104,7 @@ public class MapActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable locationTimeout = () -> {
         if (!receivedFix) status.setText(R.string.location_waiting);
+        renderTripControls();
     };
 
     private final ActivityResultLauncher<String[]> permissionLauncher =
@@ -113,14 +124,17 @@ public class MapActivity extends AppCompatActivity {
         @Override
         public void onLocationChanged(@NonNull Location location) {
             if (!resumed || mapStyle == null || !hasLocationPermission()) return;
-            currentLocation = new Location(location);
+            Location vehicle = vehiclePosition.accept(location);
+            if (vehicle == null) return;
+            currentLocation = vehicle;
             renderPlanPoints();
             updateRouteControls();
             receivedFix = true;
             handler.removeCallbacks(locationTimeout);
-            map.getLocationComponent().forceLocationUpdate(location);
+            map.getLocationComponent().forceLocationUpdate(vehicle);
+            applyTripMode(false);
             status.setText(hasFinePermission() ? R.string.location_ready : R.string.location_approximate);
-            if (centerOnNextFix) {
+            if (centerOnNextFix && !trip.isActive()) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                         new LatLng(location.getLatitude(), location.getLongitude()),
                         hasFinePermission() ? 15 : 12));
@@ -132,6 +146,8 @@ public class MapActivity extends AppCompatActivity {
         public void onProviderDisabled(@NonNull String provider) {
             if (!LocationManagerCompat.isLocationEnabled(locationManager)) {
                 status.setText(R.string.location_disabled);
+                currentLocation = null;
+                renderTripControls();
             }
         }
 
@@ -166,12 +182,26 @@ public class MapActivity extends AppCompatActivity {
         routeSummary = findViewById(R.id.route_summary);
         routeViewModel = new ViewModelProvider(this).get(RouteViewModel.class);
         routeButton.setOnClickListener(view -> buildRoute());
-        routeViewModel.getState().observe(this, state -> renderRoute());
+        tripButton = findViewById(R.id.trip_button);
+        tripStatus = findViewById(R.id.trip_status);
+        if (savedInstanceState != null) {
+            trip.restore(savedInstanceState.getBundle(STATE_TRIP),
+                    routeViewModel.currentState().status == RouteViewModel.Status.READY);
+        }
+        tripButton.setOnClickListener(view -> {
+            if (trip.isActive()) endTrip();
+            else startTrip();
+        });
+        routeViewModel.getState().observe(this, state -> {
+            if (trip.isActive() && state.status != RouteViewModel.Status.READY) endTrip();
+            renderRoute();
+        });
         clearDestinationButton = findViewById(R.id.clear_destination_button);
         findViewById(R.id.search_places_button).setOnClickListener(view ->
                 planEditorLauncher.launch(new Intent(this, RouteEditorActivity.class)
                         .putExtra(RouteEditorActivity.EXTRA_PLAN, routePlan.toBundle())));
         clearDestinationButton.setOnClickListener(view -> {
+            endTrip();
             routeViewModel.clear();
             routePlan = new RoutePlan();
             destination = null;
@@ -185,8 +215,15 @@ public class MapActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.map_attribution)).setMovementMethod(LinkMovementMethod.getInstance());
         findViewById(R.id.back_button).setOnClickListener(view -> finish());
         locateButton.setOnClickListener(view -> {
-            centerOnNextFix = true;
-            requestLocation();
+            if (trip.isActive()) {
+                trip.resumeTracking();
+                if (!hasFreshLocation()) requestLocation();
+                applyTripMode(true);
+                renderTripControls();
+            } else {
+                centerOnNextFix = true;
+                requestLocation();
+            }
         });
         retryButton.setOnClickListener(view -> loadMap());
         mapView = findViewById(R.id.map_view);
@@ -220,7 +257,7 @@ public class MapActivity extends AppCompatActivity {
         locateButton.setEnabled(false);
         retryButton.setVisibility(View.GONE);
         status.setText(R.string.map_loading);
-        map.setStyle(new Style.Builder().fromJson(getString(R.string.map_style)), style -> {
+        map.setStyle(new Style.Builder().fromUri(getString(R.string.map_style_url)), style -> {
             if (isDestroyed()) return;
             mapStyle = style;
             mapStyle.addSource(new GeoJsonSource(DESTINATION_SOURCE,
@@ -272,7 +309,7 @@ public class MapActivity extends AppCompatActivity {
             return;
         }
         source.setGeoJson(Point.fromLngLat(destination.longitude, destination.latitude));
-        if (centerOnDestination && resumed && mapView.getWidth() > 0) {
+        if (centerOnDestination && resumed && !trip.isActive() && mapView.getWidth() > 0) {
             map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                     new LatLng(destination.latitude, destination.longitude), 15));
             centerOnDestination = false;
@@ -325,7 +362,7 @@ public class MapActivity extends AppCompatActivity {
     private void updateRouteControls() {
         if (routeButton == null || routeViewModel == null) return;
         RouteViewModel.State state = routeViewModel.currentState();
-        routeButton.setVisibility(destination == null ? View.GONE : View.VISIBLE);
+        routeButton.setVisibility(destination == null || trip.isActive() ? View.GONE : View.VISIBLE);
         routeButton.setEnabled(destination != null && mapStyle != null
                 && !getString(R.string.route_endpoint).isEmpty()
                 && state.status != RouteViewModel.Status.LOADING);
@@ -338,6 +375,7 @@ public class MapActivity extends AppCompatActivity {
         } else if (state.status == RouteViewModel.Status.IDLE) {
             routeSummary.setVisibility(View.GONE);
         }
+        renderTripControls();
     }
 
     private void renderRoute() {
@@ -370,7 +408,7 @@ public class MapActivity extends AppCompatActivity {
             return;
         }
         source.setGeoJson(state.route.geometry());
-        if (resumed && mapView.getWidth() > 0 && fittedRouteId != state.requestId) {
+        if (resumed && !trip.isActive() && mapView.getWidth() > 0 && fittedRouteId != state.requestId) {
             LatLngBounds.Builder bounds = new LatLngBounds.Builder();
             for (Point point : state.route.points) {
                 bounds.include(new LatLng(point.latitude(), point.longitude()));
@@ -378,6 +416,60 @@ public class MapActivity extends AppCompatActivity {
             int padding = (int) (32 * getResources().getDisplayMetrics().density);
             map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), padding));
             fittedRouteId = state.requestId;
+        }
+    }
+
+    private void startTrip() {
+        if (routeViewModel.currentState().status != RouteViewModel.Status.READY) return;
+        if (!hasFreshLocation()) {
+            status.setText(R.string.route_need_location);
+            requestLocation();
+            return;
+        }
+        trip.start(true, true);
+        centerOnNextFix = false;
+        centerOnDestination = false;
+        map.getLocationComponent().forceLocationUpdate(currentLocation);
+        applyTripMode(true);
+        renderTripControls();
+    }
+
+    private void endTrip() {
+        trip.stop();
+        applyTripMode(false);
+        renderTripControls();
+    }
+
+    private void renderTripControls() {
+        if (tripButton == null || locateButton == null) return;
+        boolean ready = routeViewModel.currentState().status == RouteViewModel.Status.READY;
+        boolean active = trip.isActive();
+        tripButton.setVisibility(ready || active ? View.VISIBLE : View.GONE);
+        tripButton.setText(active ? R.string.end_trip : R.string.start_trip);
+        tripStatus.setVisibility(active ? View.VISIBLE : View.GONE);
+        if (active) {
+            tripStatus.setText(!hasFreshLocation() ? R.string.trip_waiting_gps
+                    : trip.isFollowing() ? R.string.trip_following : R.string.trip_browsing);
+        }
+        locateButton.setText(active ? R.string.follow_vehicle : R.string.my_location);
+        findViewById(R.id.search_places_button).setEnabled(!active);
+        routeButton.setVisibility(destination == null || active ? View.GONE : View.VISIBLE);
+        clearDestinationButton.setVisibility(destination == null || active ? View.GONE : View.VISIBLE);
+        destinationLabel.setVisibility(destination == null || active ? View.GONE : View.VISIBLE);
+        status.setVisibility(active ? View.GONE : View.VISIBLE);
+        if (mapView != null) mapView.setKeepScreenOn(active && resumed);
+    }
+
+    private void applyTripMode(boolean recenter) {
+        if (map == null || mapStyle == null
+                || !map.getLocationComponent().isLocationComponentActivated()) return;
+        org.maplibre.android.location.LocationComponent component = map.getLocationComponent();
+        component.setRenderMode(trip.isActive() ? RenderMode.GPS : RenderMode.NORMAL);
+        int mode = trip.isFollowing() ? CameraMode.TRACKING_GPS : CameraMode.NONE;
+        if (recenter && trip.isFollowing() && hasFreshLocation()) {
+            component.setCameraMode(mode, 750L, 17.0, null, 40.0, null);
+        } else if (component.getCameraMode() != mode) {
+            component.setCameraMode(mode);
         }
     }
 
@@ -446,16 +538,35 @@ public class MapActivity extends AppCompatActivity {
             if (!map.getLocationComponent().isLocationComponentActivated()) {
                 map.getLocationComponent().activateLocationComponent(
                         LocationComponentActivationOptions.builder(this, mapStyle)
-                                .useDefaultLocationEngine(false).build());
+                                .useDefaultLocationEngine(false)
+                                .locationComponentOptions(LocationComponentOptions.builder(this)
+                                        .gpsDrawable(R.drawable.ic_vehicle_marker)
+                                        .trackingGesturesManagement(true)
+                                        .build())
+                                .build());
+                map.getLocationComponent().addOnCameraTrackingChangedListener(
+                        new OnCameraTrackingChangedListener() {
+                            @Override
+                            public void onCameraTrackingChanged(int mode) { }
+
+                            @Override
+                            public void onCameraTrackingDismissed() {
+                                if (trip.isActive()) {
+                                    trip.dismissTracking();
+                                    renderTripControls();
+                                }
+                            }
+                        });
             }
             map.getLocationComponent().setLocationComponentEnabled(true);
+            applyTripMode(false);
             receivedFix = false;
             status.setText(R.string.location_searching);
             boolean requested = false;
             for (String provider : locationManager.getProviders(true)) {
                 if (LocationManager.PASSIVE_PROVIDER.equals(provider)) continue;
                 if (LocationManager.GPS_PROVIDER.equals(provider) && !hasFinePermission()) continue;
-                locationManager.requestLocationUpdates(provider, 2000L, 2f,
+                locationManager.requestLocationUpdates(provider, 1000L, 0f,
                         locationListener, Looper.getMainLooper());
                 requested = true;
             }
@@ -497,12 +608,15 @@ public class MapActivity extends AppCompatActivity {
             if (!resumed || isDestroyed()) return;
             renderDestination();
             renderRoute();
+            applyTripMode(trip.isFollowing());
+            renderTripControls();
         });
     }
 
     @Override
     protected void onPause() {
         resumed = false;
+        mapView.setKeepScreenOn(false);
         stopLocationUpdates();
         mapView.onPause();
         super.onPause();
@@ -516,6 +630,7 @@ public class MapActivity extends AppCompatActivity {
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putBundle(STATE_TRIP, trip.save());
         outState.putBundle(STATE_PLAN, routePlan.toBundle());
         outState.putInt(STATE_ROUTE_CAMERA, fittedRouteId);
         mapView.onSaveInstanceState(outState);
