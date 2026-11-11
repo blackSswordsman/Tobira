@@ -1,0 +1,577 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "7269f8e8c35c34653dc805fec732fa8f",
+    "entities": [
+      {
+        "tableName": "quest_places",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "place_external_keys",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`provider` TEXT NOT NULL, `objectType` TEXT NOT NULL, `externalId` TEXT NOT NULL, `placeId` TEXT NOT NULL, PRIMARY KEY(`provider`, `objectType`, `externalId`), FOREIGN KEY(`placeId`) REFERENCES `quest_places`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "provider",
+            "columnName": "provider",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "objectType",
+            "columnName": "objectType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "externalId",
+            "columnName": "externalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "placeId",
+            "columnName": "placeId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "provider",
+            "objectType",
+            "externalId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_place_external_keys_placeId",
+            "unique": false,
+            "columnNames": [
+              "placeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_place_external_keys_placeId` ON `${TABLE_NAME}` (`placeId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "quest_places",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "placeId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "quests",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `version` INTEGER NOT NULL, `title` TEXT NOT NULL, `introduction` TEXT NOT NULL, `language` TEXT NOT NULL, `published` INTEGER NOT NULL, PRIMARY KEY(`id`, `version`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "introduction",
+            "columnName": "introduction",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "language",
+            "columnName": "language",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "published",
+            "columnName": "published",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id",
+            "version"
+          ]
+        }
+      },
+      {
+        "tableName": "place_quests",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`placeId` TEXT NOT NULL, `questId` TEXT NOT NULL, `questVersion` INTEGER NOT NULL, PRIMARY KEY(`placeId`, `questId`, `questVersion`), FOREIGN KEY(`placeId`) REFERENCES `quest_places`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`questId`, `questVersion`) REFERENCES `quests`(`id`, `version`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "placeId",
+            "columnName": "placeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questId",
+            "columnName": "questId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questVersion",
+            "columnName": "questVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "placeId",
+            "questId",
+            "questVersion"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_place_quests_questId_questVersion",
+            "unique": false,
+            "columnNames": [
+              "questId",
+              "questVersion"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_place_quests_questId_questVersion` ON `${TABLE_NAME}` (`questId`, `questVersion`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "quest_places",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "placeId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "quests",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "questId",
+              "questVersion"
+            ],
+            "referencedColumns": [
+              "id",
+              "version"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "quest_steps",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`questId` TEXT NOT NULL, `questVersion` INTEGER NOT NULL, `id` TEXT NOT NULL, `position` INTEGER NOT NULL, `kind` TEXT NOT NULL, `text` TEXT NOT NULL, `hint` TEXT, `conditionJson` TEXT, PRIMARY KEY(`questId`, `questVersion`, `id`), FOREIGN KEY(`questId`, `questVersion`) REFERENCES `quests`(`id`, `version`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "questId",
+            "columnName": "questId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questVersion",
+            "columnName": "questVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hint",
+            "columnName": "hint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "conditionJson",
+            "columnName": "conditionJson",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "questId",
+            "questVersion",
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_quest_steps_questId_questVersion_position",
+            "unique": true,
+            "columnNames": [
+              "questId",
+              "questVersion",
+              "position"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_quest_steps_questId_questVersion_position` ON `${TABLE_NAME}` (`questId`, `questVersion`, `position`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "quests",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "questId",
+              "questVersion"
+            ],
+            "referencedColumns": [
+              "id",
+              "version"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "quest_progress",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`questId` TEXT NOT NULL, `questVersion` INTEGER NOT NULL, `phase` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`questId`, `questVersion`), FOREIGN KEY(`questId`, `questVersion`) REFERENCES `quests`(`id`, `version`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "questId",
+            "columnName": "questId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questVersion",
+            "columnName": "questVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phase",
+            "columnName": "phase",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "questId",
+            "questVersion"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "quests",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "questId",
+              "questVersion"
+            ],
+            "referencedColumns": [
+              "id",
+              "version"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "completed_quest_steps",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`questId` TEXT NOT NULL, `questVersion` INTEGER NOT NULL, `stepId` TEXT NOT NULL, `completedAt` INTEGER NOT NULL, PRIMARY KEY(`questId`, `questVersion`, `stepId`), FOREIGN KEY(`questId`, `questVersion`) REFERENCES `quest_progress`(`questId`, `questVersion`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`questId`, `questVersion`, `stepId`) REFERENCES `quest_steps`(`questId`, `questVersion`, `id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "questId",
+            "columnName": "questId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questVersion",
+            "columnName": "questVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stepId",
+            "columnName": "stepId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "questId",
+            "questVersion",
+            "stepId"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "quest_progress",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "questId",
+              "questVersion"
+            ],
+            "referencedColumns": [
+              "questId",
+              "questVersion"
+            ]
+          },
+          {
+            "table": "quest_steps",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "questId",
+              "questVersion",
+              "stepId"
+            ],
+            "referencedColumns": [
+              "questId",
+              "questVersion",
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "quest_routes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `version` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, PRIMARY KEY(`id`, `version`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id",
+            "version"
+          ]
+        }
+      },
+      {
+        "tableName": "quest_route_members",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`routeId` TEXT NOT NULL, `routeVersion` INTEGER NOT NULL, `questId` TEXT NOT NULL, `questVersion` INTEGER NOT NULL, `position` INTEGER NOT NULL, `finale` INTEGER NOT NULL, PRIMARY KEY(`routeId`, `routeVersion`, `questId`, `questVersion`), FOREIGN KEY(`routeId`, `routeVersion`) REFERENCES `quest_routes`(`id`, `version`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`questId`, `questVersion`) REFERENCES `quests`(`id`, `version`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "routeId",
+            "columnName": "routeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "routeVersion",
+            "columnName": "routeVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questId",
+            "columnName": "questId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "questVersion",
+            "columnName": "questVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finale",
+            "columnName": "finale",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "routeId",
+            "routeVersion",
+            "questId",
+            "questVersion"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_quest_route_members_routeId_routeVersion_position",
+            "unique": true,
+            "columnNames": [
+              "routeId",
+              "routeVersion",
+              "position"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_quest_route_members_routeId_routeVersion_position` ON `${TABLE_NAME}` (`routeId`, `routeVersion`, `position`)"
+          },
+          {
+            "name": "index_quest_route_members_questId_questVersion",
+            "unique": false,
+            "columnNames": [
+              "questId",
+              "questVersion"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_quest_route_members_questId_questVersion` ON `${TABLE_NAME}` (`questId`, `questVersion`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "quest_routes",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "routeId",
+              "routeVersion"
+            ],
+            "referencedColumns": [
+              "id",
+              "version"
+            ]
+          },
+          {
+            "table": "quests",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "questId",
+              "questVersion"
+            ],
+            "referencedColumns": [
+              "id",
+              "version"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7269f8e8c35c34653dc805fec732fa8f')"
+    ]
+  }
+}

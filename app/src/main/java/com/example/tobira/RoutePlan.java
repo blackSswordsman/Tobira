@@ -9,6 +9,9 @@ import java.util.List;
 public final class RoutePlan {
     public static final int MAX_STOPS = 8;
     public boolean useCurrentLocation = true;
+    public String questRouteId;
+    public int questRouteVersion;
+    public boolean isQuestRoute() { return questRouteId != null; }
     public Place start;
     public Place destination;
     public final ArrayList<Place> stops = new ArrayList<>();
@@ -19,7 +22,8 @@ public final class RoutePlan {
 
     /** Compares selected points, without resolving a moving GPS start. */
     public boolean hasSameItinerary(RoutePlan other) {
-        if (other == null || useCurrentLocation != other.useCurrentLocation
+        if (other == null || !java.util.Objects.equals(questRouteId, other.questRouteId)
+                || questRouteVersion != other.questRouteVersion || useCurrentLocation != other.useCurrentLocation
                 || (!useCurrentLocation && !samePlace(start, other.start))
                 || !samePlace(destination, other.destination)
                 || stops.size() != other.stops.size()) return false;
@@ -36,7 +40,9 @@ public final class RoutePlan {
                 && Double.compare(first.longitude, second.longitude) == 0
                 && first.name.equals(second.name) && first.address.equals(second.address)
                 && java.util.Objects.equals(first.osmType, second.osmType)
-                && java.util.Objects.equals(first.osmId, second.osmId);
+                && java.util.Objects.equals(first.osmId, second.osmId)
+                && java.util.Objects.equals(first.questId, second.questId)
+                && first.questVersion == second.questVersion;
     }
 
     public List<Place> resolve(Place currentLocation) {
@@ -53,6 +59,8 @@ public final class RoutePlan {
     public Bundle toBundle() {
         Bundle bundle = new Bundle();
         bundle.putBoolean("current", useCurrentLocation);
+        bundle.putString("questRouteId", questRouteId);
+        bundle.putInt("questRouteVersion", questRouteVersion);
         if (start != null) bundle.putBundle("start", start.toBundle());
         if (destination != null) bundle.putBundle("destination", destination.toBundle());
         ArrayList<Bundle> savedStops = new ArrayList<>();
@@ -65,6 +73,8 @@ public final class RoutePlan {
         RoutePlan plan = new RoutePlan();
         if (bundle == null) return plan;
         plan.useCurrentLocation = bundle.getBoolean("current", true);
+        plan.questRouteId = bundle.getString("questRouteId");
+        plan.questRouteVersion = bundle.getInt("questRouteVersion", 0);
         plan.start = Place.fromBundle(bundle.getBundle("start"));
         plan.destination = Place.fromBundle(bundle.getBundle("destination"));
         ArrayList<Bundle> savedStops = bundle.getParcelableArrayList("stops");

@@ -42,6 +42,20 @@ public final class QuestPanelViewModel extends AndroidViewModel {
     private final Handler main = new Handler(Looper.getMainLooper());
     private int generation;
     private String selectedRevision;
+    private String desiredQuestId = DEMO_QUEST_ID;
+    private int desiredVersion;
+    private List<Quest> lastCatalog = Collections.emptyList();
+
+    public void selectQuest(Place point) {
+        String id = point == null || point.questId == null ? DEMO_QUEST_ID : point.questId;
+        int version = point == null ? 0 : point.questVersion;
+        if (id.equals(desiredQuestId) && version == desiredVersion) return;
+        desiredQuestId = id;
+        desiredVersion = version;
+        selectedRevision = null;
+        generation++;
+        loadDemo(lastCatalog);
+    }
 
     public QuestPanelViewModel(@NonNull Application application) {
         super(application);
@@ -56,10 +70,12 @@ public final class QuestPanelViewModel extends AndroidViewModel {
     }
 
     private void loadDemo(List<Quest> catalog) {
+        lastCatalog = catalog == null ? Collections.emptyList() : catalog;
         Quest selected = null;
         if (catalog != null) {
             for (Quest quest : catalog) {
-                if (DEMO_QUEST_ID.equals(quest.id)
+                if (desiredQuestId.equals(quest.id)
+                        && (desiredVersion == 0 || desiredVersion == quest.version)
                         && (selected == null || quest.version > selected.version)) selected = quest;
             }
         }

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true"
+    android:padding="16dp">
+
+    <Button
+        android:id="@+id/catalog_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="64dp"
+        android:text="@string/back" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/catalog_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:accessibilityHeading="true"
+                android:text="@string/quest_routes"
+                android:textStyle="bold"
+                android:textSize="26sp" />
+            <TextView
+                android:id="@+id/catalog_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="12dp"
+                android:text="@string/catalog_intro"
+                android:textSize="18sp" />
+            <TextView
+                android:id="@+id/catalog_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="12dp"
+                android:accessibilityLiveRegion="polite"
+                android:text="@string/catalog_loading"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/catalog_retry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="64dp"
+                android:text="@string/retry"
+                android:visibility="gone" />
+            <Button
+                android:id="@+id/start_quest_journey"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="64dp"
+                android:text="@string/start_quest_journey"
+                android:visibility="gone" />
+            <LinearLayout
+                android:id="@+id/catalog_rows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -44,6 +44,43 @@ Observable catalog/progress reads use lifecycle-aware `LiveData`.
 Phases are PLANNED, TRAVELLING, VISITING, CHALLENGE and COMPLETED. Validating phase
 transitions, parked-state requirements and task conditions belongs to the future quest engine.
 
+## Main quest routes (schema 2)
+
+- `quest_routes`: immutable main quest revisions.
+- `quest_route_members`: exact quest revisions with recommended order and one finale.
+- `importRoute` installs a route atomically without overwriting existing revisions or progress.
+- `getRouteStatus` derives progress from individual quest checkpoints: independent completion
+  counts, each prerequisite counts once, and the finale unlocks only when all are COMPLETED.
+  The main quest completes only after the unlocked finale is also COMPLETED.
+- `startQuest`, `savePhase` and `completeStep` reject locked finales. Route planning itself
+  is unrestricted. These guards do not yet validate task answers or parked state.
+- No duplicated route progress is stored. Resetting a prerequisite locks the finale again;
+  existing finale progress is retained. A future replay UI must explain this behavior.
+
+Debug startup installs the draft `debug-izumo-myths`: 須佐神社, 稲佐の浜, 出雲大社,
+日御碕神社, then 出雲日御碕灯台・日御碕 as the finale. It has placeholder observation and
+challenge text and no executable vehicle conditions. Curated landmark coordinates are linked
+through `place_quests` on every debug startup, so older installations receive locations without
+resetting content or progress. OSM matching for these drafts is not configured.
+
+The catalog's Start Journey button opens RouteEditorActivity with GPS start, four reorderable
+stops and the lighthouse as a fixed destination. Applying opens MapActivity; cancelling leaves
+the catalog and progress unchanged. Quest IDs/versions and route revision travel with the plan
+through Bundle restoration. The trip panel previews the first selected stop; automatic quest
+advancement and persistent journey pause/resume are future work.
+
+Coordinate sources (landmarks, not validated driving entrances or parking):
+- Susa: https://kojiki.kokugakuin.ac.jp/jinjya/susajinja/
+- Inasa: https://www.izm.gr.jp/izumoru/readmore.php?gid=290&tno=-1
+- Izumo Taisha: https://kojiki.kokugakuin.ac.jp/jinjya/izumotaisha-izumoooyashiro%EF%BC%88kitsukitaisha%EF%BC%89/
+- Hinomisaki shrine: https://jmapps.ne.jp/kokugakuin/det.html?data_id=53438
+- Lighthouse: https://www.tokokai.org/tourlight/tourlight12
+Release builds do not install this fixture.
+
+Room provides a non-destructive auto migration from 1 to 2. Both exported schemas must
+remain in version control. IzumoQuestCatalogTest covers unlocking in arbitrary order,
+repeat imports, persistence and migration preserving an existing checkpoint.
+
 ## Schema changes and testing
 
 Schema version 1 is exported to
@@ -56,5 +93,6 @@ those databases after each test. It verifies persistence across reopening, exact
 matching, ordered steps, revision isolation, idempotent resume/completion, rollback and
 foreign-key protection.
 
-The left quest panel, content-authoring/import UI, quest engine and vehicle signal integration
-are not implemented by this storage change. The production catalog is intentionally empty.
+The route catalog and read-only trip preview are implemented. Content-authoring UI, quest
+engine and vehicle signal integration remain future work.
+The production catalog is intentionally empty.

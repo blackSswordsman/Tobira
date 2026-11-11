@@ -3,17 +3,21 @@ package com.example.tobira.data;
 import android.content.Context;
 
 import androidx.room.Database;
+import androidx.room.AutoMigration;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
 import com.example.tobira.data.QuestEntities.*;
 
 @Database(entities = {Place.class, PlaceKey.class, Quest.class, PlaceQuest.class, Step.class,
-        Progress.class, CompletedStep.class}, version = 1, exportSchema = true)
+        Progress.class, CompletedStep.class, QuestRouteEntities.Route.class,
+        QuestRouteEntities.Member.class}, version = 2, exportSchema = true,
+        autoMigrations = @AutoMigration(from = 1, to = 2))
 public abstract class QuestDatabase extends RoomDatabase {
     private static volatile QuestDatabase instance;
 
     public abstract QuestDao quests();
+    public abstract QuestRouteDao routes();
 
     public static QuestDatabase getInstance(Context context) {
         if (instance == null) {

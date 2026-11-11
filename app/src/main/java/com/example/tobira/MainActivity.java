@@ -13,6 +13,8 @@ public class MainActivity extends AppCompatActivity {
                 .whenComplete((ignored, error) -> {
                     if (error != null) android.util.Log.e("QuestStorage", "Cannot open quest database", error);
                 });
+        findViewById(R.id.open_quest_routes_button).setOnClickListener(view ->
+                startActivity(new android.content.Intent(this, RouteCatalogActivity.class)));
         findViewById(R.id.open_map_button).setOnClickListener(view ->
                 startActivity(new android.content.Intent(this, MapActivity.class)));
     }

@@ -13,6 +13,8 @@ public final class Place {
     public final double longitude;
     public final String osmType;
     public final String osmId;
+    public final String questId;
+    public final int questVersion;
 
     public Place(String name, String address, double latitude, double longitude) {
         this(name, address, latitude, longitude, null, null);
@@ -20,6 +22,11 @@ public final class Place {
 
     public Place(String name, String address, double latitude, double longitude,
                  String osmType, String osmId) {
+        this(name, address, latitude, longitude, osmType, osmId, null, 0);
+    }
+
+    private Place(String name, String address, double latitude, double longitude,
+                  String osmType, String osmId, String questId, int questVersion) {
         if (name == null || name.trim().isEmpty() || address == null
                 || !Double.isFinite(latitude) || !Double.isFinite(longitude)
                 || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
@@ -31,6 +38,13 @@ public final class Place {
         this.longitude = longitude;
         this.osmType = osmType;
         this.osmId = osmId;
+        this.questId = questId;
+        this.questVersion = questVersion;
+    }
+
+    public Place withQuest(String id, int version) {
+        if (id == null || id.isEmpty() || version < 1) throw new IllegalArgumentException("Invalid quest");
+        return new Place(name, address, latitude, longitude, osmType, osmId, id, version);
     }
 
     static Place fromJson(JSONObject json) throws JSONException {
@@ -80,6 +94,8 @@ public final class Place {
         bundle.putDouble("longitude", longitude);
         bundle.putString("osmType", osmType);
         bundle.putString("osmId", osmId);
+        bundle.putString("questId", questId);
+        bundle.putInt("questVersion", questVersion);
         return bundle;
     }
 
@@ -88,7 +104,8 @@ public final class Place {
         try {
             return new Place(bundle.getString("name"), bundle.getString("address"),
                     bundle.getDouble("latitude"), bundle.getDouble("longitude"),
-                    bundle.getString("osmType"), bundle.getString("osmId"));
+                    bundle.getString("osmType"), bundle.getString("osmId"),
+                    bundle.getString("questId"), bundle.getInt("questVersion", 0));
         } catch (IllegalArgumentException exception) {
             return null;
         }

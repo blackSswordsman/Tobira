@@ -14,6 +14,11 @@ import com.example.tobira.data.QuestEntities.*;
 /** Synchronous methods must be called on the repository's worker; LiveData queries are asynchronous. */
 @Dao
 public interface QuestDao {
+    @Query("SELECT p.* FROM quest_places p INNER JOIN place_quests pq ON p.id = pq.placeId "
+            + "WHERE pq.questId = :id AND pq.questVersion = :version ORDER BY p.id")
+    List<Place> getPlacesForQuest(String id, int version);
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE) void ensurePlaceLinks(List<PlaceQuest> links);
     @Upsert void putPlaces(List<Place> places);
     @Insert(onConflict = OnConflictStrategy.ABORT) void addPlaceKeys(List<PlaceKey> keys);
     @Insert(onConflict = OnConflictStrategy.ABORT) void addQuest(Quest quest);
