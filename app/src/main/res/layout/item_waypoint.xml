@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  地点行: ティール縦線 | ノード丸 | 地点名 | ↑↓ドラッグハンドル
+  縦線は上半分（前のセグメント）と下半分（次のセグメント）に分割し、
+  ノードより上を上接続、下を下接続として描画する。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="72dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <!-- 縦線＋ノード列 -->
+    <FrameLayout
+        android:layout_width="54dp"
+        android:layout_height="match_parent">
+
+        <!-- 縦線（上半分: ノード中心まで） -->
+        <View
+            android:id="@+id/line_top"
+            android:layout_width="3dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|center_horizontal"
+            android:background="#FF43CBC7" />
+
+        <!-- 縦線（下半分: ノード中心から） -->
+        <View
+            android:id="@+id/line_bottom"
+            android:layout_width="3dp"
+            android:layout_height="36dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:background="#FF43CBC7" />
+
+        <!-- ノード丸（中央） -->
+        <View
+            android:id="@+id/drag_handle"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_route_node"
+            android:contentDescription="@string/drag_handle_desc" />
+    </FrameLayout>
+
+    <!-- 地点名 -->
+    <TextView
+        android:id="@+id/waypoint_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:textColor="#FFFFFFFF"
+        android:textSize="22sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <!-- ↑↓ドラッグハンドルボタン -->
+    <ImageButton
+        android:id="@+id/remove_waypoint"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:padding="10dp"
+        android:src="@drawable/ic_reorder"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/drag_handle_desc"
+        android:scaleType="centerInside" />
+
+</LinearLayout>

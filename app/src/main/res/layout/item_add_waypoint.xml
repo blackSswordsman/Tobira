@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  セグメント行: ティール縦線 | 所要時間・距離テキスト | 吹き出し+ボタン
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="52dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <!-- 縦線（セグメント中央を貫通） -->
+    <FrameLayout
+        android:layout_width="54dp"
+        android:layout_height="match_parent">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:background="#FF43CBC7" />
+    </FrameLayout>
+
+    <!-- 所要時間・距離テキスト -->
+    <TextView
+        android:id="@+id/segment_info"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:textColor="#FF1EB9B4"
+        android:textSize="14sp" />
+
+    <!-- 吹き出し+ボタン -->
+    <ImageButton
+        android:id="@+id/add_waypoint_btn"
+        android:layout_width="56dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_add_bubble"
+        android:src="@drawable/ic_add"
+        android:padding="10dp"
+        android:scaleType="centerInside"
+        android:contentDescription="@string/add_stop_between" />
+
+</LinearLayout>
