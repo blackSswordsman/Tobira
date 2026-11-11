@@ -4,6 +4,8 @@ plugins {
 
 android {
     namespace = "com.example.tobira"
+    // Car API (android.car.Car, CarPropertyManager) used by VehicleFlagManager
+    useLibrary("android.car")
     compileSdk {
         version = release(37)
     }
