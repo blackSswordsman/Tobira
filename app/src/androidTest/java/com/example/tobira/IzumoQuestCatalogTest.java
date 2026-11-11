@@ -70,6 +70,27 @@ public class IzumoQuestCatalogTest {
                 .get(10, TimeUnit.SECONDS).phase);
     }
 
+    @Test public void evaluatedChallengeCompletionIsAtomicAndIdempotent() throws Exception {
+        IzumoQuestCatalog.install(repository).get(10, TimeUnit.SECONDS);
+        String id = IzumoQuestCatalog.QUEST_IDS[0];
+        repository.openChallenge(id, 1).get(10, TimeUnit.SECONDS);
+        try {
+            repository.completeChallenge(id, 1, "observation").get(10, TimeUnit.SECONDS);
+            fail("Observation accepted as a challenge");
+        } catch (ExecutionException expected) {
+            assertTrue(expected.getCause() instanceof IllegalArgumentException);
+        }
+        assertTrue(repository.getCompletedSteps(id, 1).get(10, TimeUnit.SECONDS).isEmpty());
+        repository.completeChallenge(id, 1, "challenge").get(10, TimeUnit.SECONDS);
+        repository.completeChallenge(id, 1, "challenge").get(10, TimeUnit.SECONDS);
+        database.close();
+        open();
+        assertEquals(Progress.COMPLETED, repository.getProgress(id, 1)
+                .get(10, TimeUnit.SECONDS).phase);
+        assertEquals(1, repository.getCompletedSteps(id, 1).get(10, TimeUnit.SECONDS).size());
+        assertEquals(1, status().completed);
+    }
+
     @Test public void manualReturnCannotOpenLockedFinale() throws Exception {
         IzumoQuestCatalog.install(repository).get(10, TimeUnit.SECONDS);
         String id = IzumoQuestCatalog.QUEST_IDS[4];

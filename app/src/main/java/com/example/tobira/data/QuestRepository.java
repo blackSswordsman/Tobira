@@ -325,6 +325,27 @@ public final class QuestRepository {
         }));
     }
 
+    /** Called only after an evaluator confirms a challenge; task and quest result commit together. */
+    public CompletableFuture<Void> completeChallenge(String id, int version, String stepId) {
+        return submit(() -> database.runInTransaction(() -> {
+            requireUnlocked(id, version);
+            if (dao.getProgress(id, version) == null) throw new IllegalStateException("Quest not started");
+            List<Step> challenges = dao.getSteps(id, version).stream()
+                    .filter(step -> Step.CHALLENGE.equals(step.kind))
+                    .collect(java.util.stream.Collectors.toList());
+            if (challenges.stream().noneMatch(step -> step.id.equals(stepId)))
+                throw new IllegalArgumentException("Unknown challenge");
+            long now = System.currentTimeMillis();
+            dao.completeStep(new CompletedStep(id, version, stepId, now));
+            java.util.Set<String> done = new java.util.HashSet<>();
+            for (CompletedStep completed : dao.getCompletedSteps(id, version)) done.add(completed.stepId);
+            boolean allDone = challenges.stream().allMatch(step -> done.contains(step.id));
+            dao.putProgress(new Progress(id, version,
+                    allDone ? Progress.COMPLETED : Progress.CHALLENGE, now));
+            return null;
+        }));
+    }
+
     public CompletableFuture<Void> completeStep(String id, int version, String stepId) {
         return submit(() -> database.runInTransaction(() -> {
             requireUnlocked(id, version);

@@ -4,6 +4,7 @@ plugins {
 
 android {
     namespace = "com.example.tobira"
+    useLibrary("android.car", false)
     compileSdk {
         version = release(37)
     }

@@ -1,0 +1,13 @@
+<resources>
+    <string name="bench_speed_instructions">【ベンチ専用・実車走行禁止】\n開始後にベンチの車速を変え、10 km/h（±1 km/h）を2秒間保ってください。最初から目標値の場合は、一度範囲外に変えてから戻してください。</string>
+    <string name="bench_start">ベンチの試練を開始</string>
+    <string name="bench_speed_unknown">車速：—</string>
+    <string name="bench_speed_value">車速：%1$.1f km/h</string>
+    <string name="bench_ready">ベンチでのみ使用してください。開始ボタンを押すと読み取りを始めます。</string>
+    <string name="bench_running">新しい速度変更を検出し、目標範囲で2秒間保持するとクリアします。</string>
+    <string name="bench_waiting">新しい車速データを待っています。受信が途切れると保持時間はリセットされます。</string>
+    <string name="bench_saving">結果を保存中…</string>
+    <string name="bench_unavailable">データの取得または保存ができません。ベンチの接続・速度プロパティ・権限を確認して再試行してください。</string>
+    <string name="bench_permission_denied">車速データの権限がありません。許可するにはアプリの設定をご確認ください。</string>
+    <string name="bench_task_success">課題クリア！この場所のクエストに結果を保存しました。閉じて開き直すと、次の未完了の課題を表示します。</string>
+</resources>
