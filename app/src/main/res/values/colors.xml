@@ -7,4 +7,11 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- Tobira brand colors (from UI mockup) -->
+    <color name="tobira_teal">#FF43CBC7</color>
+    <color name="tobira_teal_dark">#FF008F87</color>
+    <color name="tobira_teal_mid">#FF009E95</color>
+    <color name="tobira_node_bg">#FF101010</color>
+    <color name="tobira_add_bg">#FF008F87</color>
+    <color name="tobira_go_bg">#FF009E95</color>
 </resources>
