@@ -200,6 +200,15 @@ public class MapActivity extends AppCompatActivity {
         questPanelTitle = findViewById(R.id.quest_panel_title);
         questPanelIntro = findViewById(R.id.quest_panel_intro);
         questPanelObservations = findViewById(R.id.quest_panel_observations);
+        findViewById(R.id.quest_return_button).setOnClickListener(view -> {
+            if (!trip.isActive() || getSupportFragmentManager().isStateSaved()
+                    || getSupportFragmentManager().findFragmentByTag(QuestChallengeDialog.TAG) != null) return;
+            QuestPanelViewModel.State selected = new ViewModelProvider(this)
+                    .get(QuestPanelViewModel.class).getState().getValue();
+            if (selected == null || selected.status != QuestPanelViewModel.Status.CONTENT) return;
+            QuestChallengeDialog.create(selected.questId, selected.questVersion)
+                    .showNow(getSupportFragmentManager(), QuestChallengeDialog.TAG);
+        });
         selectQuestPreview();
         new ViewModelProvider(this).get(QuestPanelViewModel.class).getState()
                 .observe(this, this::renderQuestPanel);
@@ -513,6 +522,8 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void renderQuestPanel(QuestPanelViewModel.State state) {
+        findViewById(R.id.quest_return_button).setEnabled(
+                state.status == QuestPanelViewModel.Status.CONTENT);
         if (state.status == QuestPanelViewModel.Status.CONTENT) {
             questPanelTitle.setText(state.title);
             questPanelIntro.setText(state.introduction);

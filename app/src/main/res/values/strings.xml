@@ -115,4 +115,11 @@
     <string name="quest_close">閉じる</string>
     <string name="start_quest_journey">旅を始める</string>
     <string name="quest_itinerary_hint">出発地と立ち寄る順番を選んでください。灯台は最後の目的地です。表示地点は施設の位置です。駐車場・入口は現地の案内をご確認ください。</string>
+    <string name="quest_returned_to_car">車に戻った・試練を開く</string>
+    <string name="challenge_title">車内の試練</string>
+    <string name="challenge_hint">ヒント</string>
+    <string name="challenge_number">課題 %1$d / %2$d</string>
+    <string name="challenge_unavailable">課題を開けませんでした。最後の試練は、他のクエストをすべてクリアするまでロックされています。通信や読み込みの問題の場合は、閉じてからもう一度お試しください。</string>
+    <string name="challenge_no_remaining">現在、取り組める未完了の課題はありません。</string>
+    <string name="challenge_vehicle_pending">安全な場所に停車して取り組んでください。車両操作による回答の自動判定は準備中です。この画面を開くだけではクリアになりません。</string>
 </resources>

@@ -57,5 +57,13 @@
             android:lineSpacingExtra="6dp"
             android:text="@string/quest_placeholder_observations"
             android:textSize="16sp" />
+        <Button
+            android:id="@+id/quest_return_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:minHeight="64dp"
+            android:enabled="false"
+            android:text="@string/quest_returned_to_car" />
     </LinearLayout>
 </ScrollView>

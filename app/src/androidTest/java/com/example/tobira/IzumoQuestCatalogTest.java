@@ -48,6 +48,40 @@ public class IzumoQuestCatalogTest {
         repository.savePhase(id, 1, Progress.COMPLETED).get(10, TimeUnit.SECONDS);
     }
 
+    @Test public void manualReturnOpensChallengeWithoutCompletingItAndResumesAfterReopening() throws Exception {
+        IzumoQuestCatalog.install(repository).get(10, TimeUnit.SECONDS);
+        String id = IzumoQuestCatalog.QUEST_IDS[0];
+        QuestRepository.ChallengeInfo task = repository.openChallenge(id, 1)
+                .get(10, TimeUnit.SECONDS);
+        assertEquals(id, task.quest.id);
+        assertEquals("challenge", task.step.id);
+        assertEquals(1, task.position);
+        assertEquals(Progress.CHALLENGE, repository.getProgress(id, 1)
+                .get(10, TimeUnit.SECONDS).phase);
+        assertTrue(repository.getCompletedSteps(id, 1).get(10, TimeUnit.SECONDS).isEmpty());
+        assertEquals(0, status().completed);
+        database.close();
+        open();
+        assertEquals(task.step.id, repository.openChallenge(id, 1)
+                .get(10, TimeUnit.SECONDS).step.id);
+        complete(0);
+        assertNull(repository.openChallenge(id, 1).get(10, TimeUnit.SECONDS).step);
+        assertEquals(Progress.COMPLETED, repository.getProgress(id, 1)
+                .get(10, TimeUnit.SECONDS).phase);
+    }
+
+    @Test public void manualReturnCannotOpenLockedFinale() throws Exception {
+        IzumoQuestCatalog.install(repository).get(10, TimeUnit.SECONDS);
+        String id = IzumoQuestCatalog.QUEST_IDS[4];
+        try {
+            repository.openChallenge(id, 1).get(10, TimeUnit.SECONDS);
+            fail("Locked finale opened");
+        } catch (ExecutionException expected) {
+            assertTrue(expected.getCause() instanceof IllegalStateException);
+        }
+        assertNull(repository.getProgress(id, 1).get(10, TimeUnit.SECONDS));
+    }
+
     @Test public void finaleRequiresAllFourInAnyOrderAndThenCompletesRoute() throws Exception {
         assertTrue(IzumoQuestCatalog.install(repository).get(10, TimeUnit.SECONDS));
         assertEquals(5, database.routes().getMembers(IzumoQuestCatalog.ROUTE_ID, 1).size());

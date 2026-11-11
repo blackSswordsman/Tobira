@@ -24,11 +24,16 @@ public final class QuestPanelViewModel extends AndroidViewModel {
 
     public static final class State {
         public final Status status;
+        public final String questId;
+        public final int questVersion;
         public final String title;
         public final String introduction;
         public final List<String> observations;
 
-        private State(Status status, String title, String introduction, List<String> observations) {
+        private State(Status status, String title, String introduction, List<String> observations,
+                      String questId, int questVersion) {
+            this.questId = questId;
+            this.questVersion = questVersion;
             this.status = status;
             this.title = title;
             this.introduction = introduction;
@@ -102,12 +107,12 @@ public final class QuestPanelViewModel extends AndroidViewModel {
             for (Step step : steps) {
                 if (Step.OBSERVATION.equals(step.kind)) observations.add(step.text);
             }
-            state.setValue(new State(Status.CONTENT, quest.title, quest.introduction, observations));
+            state.setValue(new State(Status.CONTENT, quest.title, quest.introduction, observations, quest.id, quest.version));
         }));
     }
 
     private static State message(Status status) {
-        return new State(status, "", "", Collections.emptyList());
+        return new State(status, "", "", Collections.emptyList(), null, 0);
     }
 
     @Override

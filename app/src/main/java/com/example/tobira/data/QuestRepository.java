@@ -254,6 +254,49 @@ public final class QuestRepository {
         });
     }
 
+    /** Manual return confirmation. Never completes a task or downgrades a completed quest. */
+    public CompletableFuture<ChallengeInfo> openChallenge(String id, int version) {
+        return submit(() -> database.runInTransaction(() -> {
+            requireQuest(id, version);
+            requireUnlocked(id, version);
+            List<Step> challenges = dao.getSteps(id, version).stream()
+                    .filter(step -> Step.CHALLENGE.equals(step.kind))
+                    .collect(java.util.stream.Collectors.toList());
+            java.util.Set<String> completed = new java.util.HashSet<>();
+            for (CompletedStep step : dao.getCompletedSteps(id, version)) completed.add(step.stepId);
+            Progress progress = dao.getProgress(id, version);
+            Step next = null;
+            int position = 0;
+            if (progress == null || !Progress.COMPLETED.equals(progress.phase)) {
+                for (int index = 0; index < challenges.size(); index++) {
+                    if (!completed.contains(challenges.get(index).id)) {
+                        next = challenges.get(index);
+                        position = index + 1;
+                        break;
+                    }
+                }
+            }
+            if (next != null) {
+                dao.putProgress(new Progress(id, version, Progress.CHALLENGE, System.currentTimeMillis()));
+            }
+            return new ChallengeInfo(dao.getQuest(id, version), next, position, challenges.size());
+        }));
+    }
+
+    public static final class ChallengeInfo {
+        public final Quest quest;
+        public final Step step;
+        public final int position;
+        public final int total;
+
+        ChallengeInfo(Quest quest, Step step, int position, int total) {
+            this.quest = quest;
+            this.step = step;
+            this.position = position;
+            this.total = total;
+        }
+    }
+
     public CompletableFuture<List<Step>> getSteps(String id, int version) {
         return submit(() -> dao.getSteps(id, version));
     }
