@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -12,9 +13,18 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -76,6 +86,13 @@ public class MapActivity extends AppCompatActivity {
     private RouteViewModel routeViewModel;
     private Button routeButton;
     private TextView routeSummary;
+    // Overlay UI
+    private LinearLayout stopRows;
+    private LinearLayout placeResults;
+    private View searchResultsBubble;
+    private EditText placeQuery;
+    private PlaceSearchViewModel searchViewModel;
+    private int dragFrom = -1;
     private Location currentLocation;
     private int fittedRouteId = -1;
     private static boolean httpConfigured;
@@ -229,6 +246,8 @@ public class MapActivity extends AppCompatActivity {
         routeViewModel.getState().observe(this, state -> {
             if (trip.isActive() && state.status != RouteViewModel.Status.READY) endTrip();
             renderRoute();
+            // ⑧: update GO button label based on route state
+            updateGoButton(state.status);
         });
         clearDestinationButton = findViewById(R.id.clear_destination_button);
         findViewById(R.id.search_places_button).setOnClickListener(view -> openRouteEditor());
@@ -260,6 +279,80 @@ public class MapActivity extends AppCompatActivity {
             }
         });
         retryButton.setOnClickListener(view -> loadMap());
+        // Overlay: waypoint list
+        stopRows = findViewById(R.id.stop_rows);
+        renderWaypoints();
+
+        // ⑧: GO button — build route or start trip depending on state
+        View applyRouteBtn = findViewById(R.id.apply_route);
+        if (applyRouteBtn != null) applyRouteBtn.setOnClickListener(view -> {
+            RouteViewModel.State rs = routeViewModel.currentState();
+            if (rs.status == RouteViewModel.Status.READY) {
+                startTrip();
+            } else {
+                buildRoute();
+            }
+        });
+
+        // Overlay: current location button
+        View currentLocationBtn = findViewById(R.id.current_location);
+        if (currentLocationBtn != null) currentLocationBtn.setOnClickListener(view -> {
+            if (trip.isActive()) {
+                trip.resumeTracking();
+                if (!hasFreshLocation()) requestLocation();
+                applyTripMode(true);
+                renderTripControls();
+            } else {
+                centerOnNextFix = true;
+                requestLocation();
+            }
+        });
+
+        // ㉒: cancel trip button — visible only after GO is pressed
+        View cancelBtn = findViewById(R.id.cancel_trip_button);
+        if (cancelBtn != null) cancelBtn.setOnClickListener(view -> {
+            endTrip();
+            routeViewModel.clear();
+            cancelBtn.setVisibility(View.GONE);
+        });
+
+        // Overlay: quest tab → toggle quest panel
+        View tabQuest = findViewById(R.id.tab_quest);
+        if (tabQuest != null) tabQuest.setOnClickListener(view -> {
+            if (!trip.isActive()) return;
+            questPreview = !questPreview;
+            renderTripControls();
+        });
+
+        // Overlay: search field + results bubble
+        searchResultsBubble = findViewById(R.id.search_results_bubble);
+        placeResults = findViewById(R.id.place_results);
+        placeQuery = findViewById(R.id.place_query);
+        searchViewModel = new ViewModelProvider(this).get(PlaceSearchViewModel.class);
+
+        if (placeQuery != null && searchResultsBubble != null) {
+            placeQuery.setOnFocusChangeListener((v, hasFocus) -> {
+                if (searchResultsBubble != null)
+                    searchResultsBubble.setVisibility(hasFocus ? View.VISIBLE : View.GONE);
+            });
+            placeQuery.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
+                @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
+                    searchViewModel.onQueryChanged(s.toString());
+                }
+                @Override public void afterTextChanged(Editable s) {}
+            });
+            placeQuery.setOnEditorActionListener((v, action, event) -> {
+                if (action == EditorInfo.IME_ACTION_SEARCH) {
+                    searchViewModel.search(placeQuery.getText().toString());
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        searchViewModel.getState().observe(this, state -> renderSearchResults(state));
+
         mapView = findViewById(R.id.map_view);
         mapView.onCreate(savedInstanceState);
         mapView.addOnLayoutChangeListener((view, left, top, right, bottom,
@@ -278,6 +371,317 @@ public class MapActivity extends AppCompatActivity {
             map = readyMap;
             loadMap();
         });
+    }
+
+    // ── Overlay: waypoint list ───────────────────────────────────────────────
+
+    private void renderWaypoints() {
+        if (stopRows == null) return;
+        stopRows.removeAllViews();
+
+        // ⑯ fix: show stops only (destination mirrors last stop — no double entry)
+        java.util.List<Place> waypoints = new java.util.ArrayList<>(routePlan.stops);
+
+        int dp = (int) getResources().getDisplayMetrics().density;
+        int nodeCount = Math.max(1, waypoints.size());
+
+        for (int i = 0; i < nodeCount; i++) {
+            final int index = i;
+            Place place = i < waypoints.size() ? waypoints.get(i) : null;
+            String label = place != null ? place.name : getString(R.string.unset_waypoint);
+
+            // ─── Node row ───────────────────────────────────────────
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 72 * dp));
+
+            View circle = new View(this);
+            circle.setLayoutParams(new LinearLayout.LayoutParams(44 * dp, 44 * dp));
+            circle.setBackground(getDrawable(R.drawable.bg_waypoint_circle));
+            row.addView(circle);
+
+            TextView nameView = new TextView(this);
+            LinearLayout.LayoutParams nameParams =
+                    new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            nameParams.setMarginStart(16 * dp);
+            nameView.setLayoutParams(nameParams);
+            nameView.setText(label);
+            nameView.setTextColor(place != null ? Color.WHITE : Color.parseColor("#FF888888"));
+            nameView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 28);
+            nameView.setMaxLines(1);
+            nameView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            // ⑭: tapping an unset (placeholder) node opens search to fill that slot
+            if (place == null) {
+                row.setClickable(true);
+                row.setFocusable(true);
+                row.setOnClickListener(v -> focusSearchAt(index));
+            }
+            row.addView(nameView);
+
+            // ③㉓ Reorder handle: drag to reorder; only shown for registered stops
+            if (place != null) {
+                ImageButton handle = new ImageButton(this);
+                handle.setLayoutParams(new LinearLayout.LayoutParams(52 * dp, 52 * dp));
+                handle.setImageDrawable(getDrawable(R.drawable.ic_reorder));
+                handle.setBackground(null);
+                handle.setAlpha(routePlan.stops.size() > 1 ? 1f : 0.3f);
+                handle.setContentDescription(getString(R.string.drag_handle_desc));
+                // ㉓: drag to reorder — track Y position across all rows in stopRows
+                handle.setOnTouchListener(new View.OnTouchListener() {
+                    private float startY;
+                    private int dragIndex;
+                    @SuppressLint("ClickableViewAccessibility")
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        if (routePlan.stops.size() <= 1) return false;
+                        switch (event.getAction()) {
+                            case MotionEvent.ACTION_DOWN:
+                                startY = event.getRawY();
+                                dragIndex = index;
+                                return true;
+                            case MotionEvent.ACTION_MOVE: {
+                                float dy = event.getRawY() - startY;
+                                int rowH = 72 * dp; // node row height
+                                int steps = (int) (dy / rowH);
+                                int newIndex = Math.max(0, Math.min(routePlan.stops.size() - 1,
+                                        dragIndex + steps));
+                                if (newIndex != dragIndex) {
+                                    // slide one step at a time for smooth feedback
+                                    int dir = newIndex > dragIndex ? 1 : -1;
+                                    java.util.Collections.swap(routePlan.stops, dragIndex, dragIndex + dir);
+                                    dragIndex += dir;
+                                    startY += dir * rowH;
+                                    routePlan.destination = routePlan.stops.get(routePlan.stops.size() - 1);
+                                    destination = routePlan.destination;
+                                    routeViewModel.clear();
+                                    renderWaypoints();
+                                    renderDestination();
+                                }
+                                return true;
+                            }
+                            case MotionEvent.ACTION_UP:
+                            case MotionEvent.ACTION_CANCEL:
+                                return true;
+                        }
+                        return false;
+                    }
+                });
+                row.addView(handle);
+            }
+            stopRows.addView(row);
+
+            // ─── Segment row (after every node including last = ⑨) ──
+            LinearLayout seg = new LinearLayout(this);
+            seg.setOrientation(LinearLayout.HORIZONTAL);
+            seg.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            seg.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 48 * dp));
+
+            View line = new View(this);
+            LinearLayout.LayoutParams lineParams =
+                    new LinearLayout.LayoutParams(2 * dp, ViewGroup.LayoutParams.MATCH_PARENT);
+            lineParams.setMarginStart(21 * dp);
+            lineParams.setMarginEnd(8 * dp);
+            line.setLayoutParams(lineParams);
+            line.setBackgroundColor(Color.parseColor("#FF43CBC7"));
+            seg.addView(line);
+
+            boolean hasNext = i < waypoints.size() - 1;
+            if (hasNext) {
+                // Segment time/distance info
+                TextView segInfo = new TextView(this);
+                segInfo.setLayoutParams(new LinearLayout.LayoutParams(
+                        0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                segInfo.setTextColor(Color.parseColor("#FF43CBC7"));
+                segInfo.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
+                // ⑬: show total time/distance when route is ready (single-segment route)
+                RouteViewModel.State rs = routeViewModel != null ? routeViewModel.currentState() : null;
+                if (rs != null && rs.status == RouteViewModel.Status.READY && rs.route != null) {
+                    if (waypoints.size() == 2) {
+                        long mins = Math.max(1, (long) Math.ceil(rs.route.durationSeconds / 60.0));
+                        double km = rs.route.distanceMeters / 1000.0;
+                        segInfo.setText(String.format(java.util.Locale.getDefault(), "%d分 / %.1fkm", mins, km));
+                    } else {
+                        // multi-stop: show total on last segment
+                        if (i == waypoints.size() - 2) {
+                            long mins = Math.max(1, (long) Math.ceil(rs.route.durationSeconds / 60.0));
+                            double km = rs.route.distanceMeters / 1000.0;
+                            segInfo.setText(String.format(java.util.Locale.getDefault(), "合計 %d分 / %.1fkm", mins, km));
+                        }
+                    }
+                }
+                seg.addView(segInfo);
+
+                // ⑰ simple + button (no bubble)
+                ImageButton addBetween = new ImageButton(this);
+                LinearLayout.LayoutParams abp =
+                        new LinearLayout.LayoutParams(44 * dp, 44 * dp);
+                abp.setMarginEnd(4 * dp);
+                addBetween.setLayoutParams(abp);
+                addBetween.setImageDrawable(getDrawable(R.drawable.ic_add));
+                addBetween.setBackground(getDrawable(R.drawable.bg_add_bubble));
+                addBetween.setPadding(10 * dp, 10 * dp, 10 * dp, 10 * dp);
+                addBetween.setContentDescription(getString(R.string.add_stop_between));
+                final int insertHere = i + 1;
+                addBetween.setOnClickListener(v -> focusSearchAt(insertHere));
+                seg.addView(addBetween);
+            } else {
+                // ⑨ trailing segment: just the vertical line + ⑱ trailing + button inline
+                View spacer = new View(this);
+                spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 1, 1f));
+                seg.addView(spacer);
+
+                ImageButton addEnd = new ImageButton(this);
+                LinearLayout.LayoutParams aep =
+                        new LinearLayout.LayoutParams(44 * dp, 44 * dp);
+                aep.setMarginEnd(4 * dp);
+                addEnd.setLayoutParams(aep);
+                addEnd.setImageDrawable(getDrawable(R.drawable.ic_add));
+                addEnd.setBackground(getDrawable(R.drawable.bg_add_bubble));
+                addEnd.setPadding(10 * dp, 10 * dp, 10 * dp, 10 * dp);
+                addEnd.setContentDescription(getString(R.string.add_stop));
+                addEnd.setOnClickListener(v -> focusSearchAt(-1));
+                seg.addView(addEnd);
+            }
+            stopRows.addView(seg);
+        }
+        // removed separate addRow — ⑱ + button is now inline in the last segment row
+    }
+
+    private void updateGoButton(RouteViewModel.Status status) {
+        Button goBtn = findViewById(R.id.apply_route);
+        View cancelView = findViewById(R.id.cancel_trip_button);
+        if (goBtn == null) return;
+
+        goBtn.clearAnimation();
+        if (trip.isActive()) {
+            // ㉔: hide GO while trip is running
+            goBtn.setVisibility(View.INVISIBLE);
+        } else if (status == RouteViewModel.Status.READY) {
+            // Route confirmed but trip not yet started: show blinking GO
+            goBtn.setVisibility(View.VISIBLE);
+            android.view.animation.AlphaAnimation blink =
+                    new android.view.animation.AlphaAnimation(1f, 0.3f);
+            blink.setDuration(600);
+            blink.setRepeatMode(android.view.animation.Animation.REVERSE);
+            blink.setRepeatCount(android.view.animation.Animation.INFINITE);
+            goBtn.startAnimation(blink);
+        } else {
+            goBtn.setVisibility(View.VISIBLE);
+        }
+        // ㉒: cancel button visible only when trip is active
+        if (cancelView != null) {
+            cancelView.setVisibility(trip.isActive() ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void focusSearchAt(int insertIndex) {
+        if (placeQuery == null) return;
+        placeQuery.setTag(insertIndex);
+        placeQuery.requestFocus();
+        // ⑤: explicitly show keyboard
+        android.view.inputmethod.InputMethodManager imm =
+                (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm != null) imm.showSoftInput(placeQuery, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+        if (searchResultsBubble != null) searchResultsBubble.setVisibility(View.VISIBLE);
+    }
+
+    // ── Overlay: search results ──────────────────────────────────────────────
+
+    private void renderSearchResults(PlaceSearchViewModel.State state) {
+        if (placeResults == null || searchResultsBubble == null) return;
+        TextView statusView = searchResultsBubble.findViewById(R.id.search_status);
+        if (statusView != null) {
+            switch (state.status) {
+                case IDLE -> statusView.setVisibility(View.GONE);
+                case LOADING -> { statusView.setText(R.string.search_loading); statusView.setVisibility(View.VISIBLE); }
+                case EMPTY -> { statusView.setText(R.string.search_empty); statusView.setVisibility(View.VISIBLE); }
+                case ERROR -> { statusView.setText(R.string.search_error); statusView.setVisibility(View.VISIBLE); }
+                case RATE_LIMITED -> { statusView.setText(R.string.search_rate_limited); statusView.setVisibility(View.VISIBLE); }
+                case RESULTS -> statusView.setVisibility(View.GONE);
+            }
+        }
+
+        placeResults.removeAllViews();
+        int dp = (int) getResources().getDisplayMetrics().density;
+
+        for (Place place : state.places) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 96 * dp));
+            // ⑥: entire row is clickable to add the place
+            row.setClickable(true);
+            row.setFocusable(true);
+            row.setOnClickListener(v -> addPlaceToRoute(place));
+
+            LinearLayout info = new LinearLayout(this);
+            info.setOrientation(LinearLayout.VERTICAL);
+            info.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+            TextView nameView = new TextView(this);
+            nameView.setText(place.name);
+            nameView.setTextColor(Color.parseColor("#FF111111"));
+            nameView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20);
+            nameView.setMaxLines(1);
+            nameView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            info.addView(nameView);
+
+            TextView addrView = new TextView(this);
+            addrView.setText(place.address);
+            addrView.setTextColor(Color.parseColor("#FF444444"));
+            addrView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
+            addrView.setMaxLines(2);
+            info.addView(addrView);
+
+            row.addView(info);
+
+            ImageButton addBtn = new ImageButton(this);
+            addBtn.setLayoutParams(new LinearLayout.LayoutParams(48 * dp, 48 * dp));
+            addBtn.setImageDrawable(getDrawable(R.drawable.ic_add));
+            addBtn.setBackground(getDrawable(R.drawable.bg_route_node));
+            addBtn.setPadding(12 * dp, 12 * dp, 12 * dp, 12 * dp);
+            addBtn.setContentDescription(place.name);
+            addBtn.setOnClickListener(v -> addPlaceToRoute(place));
+            row.addView(addBtn);
+            placeResults.addView(row);
+        }
+    }
+
+    private void addPlaceToRoute(Place place) {
+        Object tag = placeQuery != null ? placeQuery.getTag() : null;
+        int insertAt = (tag instanceof Integer) ? (int) tag : -1;
+
+        // ④: always append to stops in order; display is stops only (no separate destination row).
+        //     Destination is kept in sync as the last stop so isComplete() returns true when ≥1 stop.
+        if (insertAt >= 0 && insertAt <= routePlan.stops.size()) {
+            routePlan.stops.add(insertAt, place);
+        } else {
+            routePlan.stops.add(place);
+        }
+        // ⑯ fix: destination mirrors only the LAST stop — do NOT put it in the waypoints list again.
+        routePlan.destination = routePlan.stops.get(routePlan.stops.size() - 1);
+        destination = routePlan.destination;
+
+        // ⑦: hide bubble and clear search field
+        if (placeQuery != null) {
+            placeQuery.setTag(-1);
+            placeQuery.setText("");
+        }
+        if (searchResultsBubble != null) searchResultsBubble.setVisibility(View.GONE);
+        android.view.inputmethod.InputMethodManager imm =
+                (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm != null && placeQuery != null)
+            imm.hideSoftInputFromWindow(placeQuery.getWindowToken(), 0);
+
+        endTrip();
+        routeViewModel.clear();
+        selectQuestPreview();
+        renderDestination();
+        renderWaypoints();
     }
 
     private void configureMapHttp() {
@@ -341,6 +745,7 @@ public class MapActivity extends AppCompatActivity {
             destinationLabel.setText(getString(R.string.route_plan_summary,
                     startName, routePlan.stops.size(), destination.name));
         }
+        renderWaypoints();
         updateRouteControls();
         renderPlanPoints();
         if (mapStyle == null) return;
@@ -486,6 +891,7 @@ public class MapActivity extends AppCompatActivity {
         map.getLocationComponent().forceLocationUpdate(currentLocation);
         applyTripMode(true);
         renderTripControls();
+        updateGoButton(routeViewModel.currentState().status); // ㉔: hide GO
     }
 
     private void endTrip() {
@@ -493,6 +899,7 @@ public class MapActivity extends AppCompatActivity {
         questPreview = false;
         applyTripMode(false);
         renderTripControls();
+        updateGoButton(routeViewModel.currentState().status); // ㉔: restore GO
     }
 
     private void renderTripControls() {
