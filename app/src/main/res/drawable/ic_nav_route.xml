@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <!-- Placeholder: simple path/route icon -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M8,24 C8,20 12,18 16,16 C20,14 24,12 24,8 M8,24 L8,8 M24,8 L24,24"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:fillAlpha="0" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M6,8 A2,2 0 1,1 10,8 A2,2 0 1,1 6,8z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M22,24 A2,2 0 1,1 26,24 A2,2 0 1,1 22,24z" />
+    <path android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M8,8 Q8,16 16,16 Q24,16 24,24" />
+</vector>

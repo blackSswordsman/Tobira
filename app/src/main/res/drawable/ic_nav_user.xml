@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <!-- Placeholder: person icon -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M16,16 A5,5 0 1,0 16,6 A5,5 0 1,0 16,16z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M6,28 C6,22 10,18 16,18 C22,18 26,22 26,28 Z" />
+</vector>

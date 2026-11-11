@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Placeholder: door/gate icon (outer frame) -->
+    <path
+        android:fillColor="#00BCD4"
+        android:pathData="M8,4 L40,4 L40,44 L8,44 Z" />
+    <!-- Left door panel -->
+    <path
+        android:fillColor="#006064"
+        android:pathData="M12,8 L23,8 L23,36 L12,36 Z" />
+    <!-- Right door panel -->
+    <path
+        android:fillColor="#006064"
+        android:pathData="M25,8 L36,8 L36,36 L25,36 Z" />
+    <!-- Door knob left -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M21,21 A1.5,1.5 0 1,0 24,21 A1.5,1.5 0 1,0 21,21 Z" />
+    <!-- Door knob right -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M25,21 A1.5,1.5 0 1,0 28,21 A1.5,1.5 0 1,0 25,21 Z" />
+</vector>
