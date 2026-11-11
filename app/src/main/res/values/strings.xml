@@ -83,4 +83,14 @@
     <string name="trip_following">走行中・現在地を追従しています</string>
     <string name="trip_browsing">走行中・「車両に戻る」で追従を再開できます</string>
     <string name="trip_waiting_gps">走行中・位置情報の更新を待っています</string>
+    <string name="quest_panel_heading">クエスト・プレビュー</string>
+    <string name="quest_placeholder_title">クエスト準備中</string>
+    <string name="quest_placeholder_intro">ここにクエストの物語が表示されます。</string>
+    <string name="quest_observations_heading">訪問時に注目すること</string>
+    <string name="quest_placeholder_observations">・建物の模様や数\n\n・案内板に書かれた言い伝え\n\n・場所を象徴する印\n\n※表示内容は仮のサンプルです。</string>
+    <string name="quest_panel_loading">クエストを読み込み中…</string>
+    <string name="quest_panel_error">クエストを読み込めませんでした。サンプルを表示しています。</string>
+    <string name="show_quest_panel">クエストを見る</string>
+    <string name="hide_quest_panel">クエストを閉じる</string>
+    <string name="route_points">ルートと経由地</string>
 </resources>

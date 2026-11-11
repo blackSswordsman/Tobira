@@ -17,6 +17,28 @@ public final class RoutePlan {
         return destination != null && (useCurrentLocation || start != null);
     }
 
+    /** Compares selected points, without resolving a moving GPS start. */
+    public boolean hasSameItinerary(RoutePlan other) {
+        if (other == null || useCurrentLocation != other.useCurrentLocation
+                || (!useCurrentLocation && !samePlace(start, other.start))
+                || !samePlace(destination, other.destination)
+                || stops.size() != other.stops.size()) return false;
+        for (int index = 0; index < stops.size(); index++) {
+            if (!samePlace(stops.get(index), other.stops.get(index))) return false;
+        }
+        return true;
+    }
+
+    private static boolean samePlace(Place first, Place second) {
+        if (first == second) return true;
+        return first != null && second != null
+                && Double.compare(first.latitude, second.latitude) == 0
+                && Double.compare(first.longitude, second.longitude) == 0
+                && first.name.equals(second.name) && first.address.equals(second.address)
+                && java.util.Objects.equals(first.osmType, second.osmType)
+                && java.util.Objects.equals(first.osmId, second.osmId);
+    }
+
     public List<Place> resolve(Place currentLocation) {
         if (!isComplete() || (useCurrentLocation && currentLocation == null)) {
             throw new IllegalStateException("Incomplete route");

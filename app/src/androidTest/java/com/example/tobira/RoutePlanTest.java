@@ -85,6 +85,32 @@ public class RoutePlanTest {
         }
     }
 
+    @Test
+    public void unchangedEditorResultPreservesItinerary() {
+        RoutePlan plan = new RoutePlan();
+        plan.destination = new Place("Temple", "Address", 35, 132, "node", "123");
+        plan.stops.add(place("Cafe", 36, 133));
+        assertTrue(plan.hasSameItinerary(RoutePlan.fromBundle(plan.toBundle())));
+    }
+
+    @Test
+    public void changedStartDestinationOrStopOrderRequiresNewRoute() {
+        RoutePlan plan = new RoutePlan();
+        plan.destination = place("Temple", 35, 132);
+        plan.stops.add(place("Cafe", 36, 133));
+        plan.stops.add(place("Museum", 37, 134));
+        RoutePlan changed = RoutePlan.fromBundle(plan.toBundle());
+        java.util.Collections.swap(changed.stops, 0, 1);
+        assertFalse(plan.hasSameItinerary(changed));
+        changed = RoutePlan.fromBundle(plan.toBundle());
+        changed.useCurrentLocation = false;
+        changed.start = place("Start", 34, 131);
+        assertFalse(plan.hasSameItinerary(changed));
+        changed = RoutePlan.fromBundle(plan.toBundle());
+        changed.destination = place("Other", 38, 135);
+        assertFalse(plan.hasSameItinerary(changed));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void refusesRouteWithOnlyOnePoint() {
         RouteViewModel.routeUrl("https://router.project-osrm.org/route/v1/driving",

@@ -62,6 +62,12 @@ public class MapActivity extends AppCompatActivity {
     private final VehiclePosition vehiclePosition = new VehiclePosition();
     private Button tripButton;
     private TextView tripStatus;
+    private View questPanel;
+    private boolean questPreview;
+    private static final String STATE_QUEST_PREVIEW = "quest-preview";
+    private TextView questPanelTitle;
+    private TextView questPanelIntro;
+    private TextView questPanelObservations;
     private static final String DESTINATION_SOURCE = "destination-source";
     private static final String DESTINATION_LAYER = "destination-layer";
     private static final String ROUTE_SOURCE = "route-source";
@@ -82,7 +88,7 @@ public class MapActivity extends AppCompatActivity {
                 if (result.getResultCode() != RESULT_OK || result.getData() == null) return;
                 RoutePlan selected = RoutePlan.fromBundle(
                         result.getData().getBundleExtra(RouteEditorActivity.EXTRA_PLAN));
-                if (!selected.isComplete()) return;
+                if (!selected.isComplete() || routePlan.hasSameItinerary(selected)) return;
                 endTrip();
                 routeViewModel.clear();
                 routePlan = selected;
@@ -172,12 +178,24 @@ public class MapActivity extends AppCompatActivity {
             if (!savedInstanceState.containsKey(STATE_PLAN)) {
                 routePlan.destination = Place.fromBundle(savedInstanceState.getBundle(STATE_DESTINATION));
             }
+            questPreview = savedInstanceState.getBoolean(STATE_QUEST_PREVIEW, false);
             destination = routePlan.destination;
             centerOnNextFix = destination == null;
             fittedRouteId = savedInstanceState.getInt(STATE_ROUTE_CAMERA, -1);
         }
         setContentView(R.layout.activity_map);
         destinationLabel = findViewById(R.id.destination_label);
+        questPanel = findViewById(R.id.quest_panel);
+        findViewById(R.id.quest_preview_button).setOnClickListener(view -> {
+            if (!trip.isActive()) return;
+            questPreview = !questPreview;
+            renderTripControls();
+        });
+        questPanelTitle = findViewById(R.id.quest_panel_title);
+        questPanelIntro = findViewById(R.id.quest_panel_intro);
+        questPanelObservations = findViewById(R.id.quest_panel_observations);
+        new ViewModelProvider(this).get(QuestPanelViewModel.class).getState()
+                .observe(this, this::renderQuestPanel);
         routeButton = findViewById(R.id.build_route_button);
         routeSummary = findViewById(R.id.route_summary);
         routeViewModel = new ViewModelProvider(this).get(RouteViewModel.class);
@@ -197,9 +215,8 @@ public class MapActivity extends AppCompatActivity {
             renderRoute();
         });
         clearDestinationButton = findViewById(R.id.clear_destination_button);
-        findViewById(R.id.search_places_button).setOnClickListener(view ->
-                planEditorLauncher.launch(new Intent(this, RouteEditorActivity.class)
-                        .putExtra(RouteEditorActivity.EXTRA_PLAN, routePlan.toBundle())));
+        findViewById(R.id.search_places_button).setOnClickListener(view -> openRouteEditor());
+        findViewById(R.id.route_points_button).setOnClickListener(view -> openRouteEditor());
         clearDestinationButton.setOnClickListener(view -> {
             endTrip();
             routeViewModel.clear();
@@ -228,6 +245,14 @@ public class MapActivity extends AppCompatActivity {
         retryButton.setOnClickListener(view -> loadMap());
         mapView = findViewById(R.id.map_view);
         mapView.onCreate(savedInstanceState);
+        mapView.addOnLayoutChangeListener((view, left, top, right, bottom,
+                                          oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft && resumed && trip.isFollowing()) {
+                mapView.post(() -> {
+                    if (resumed && trip.isFollowing()) applyTripMode(true);
+                });
+            }
+        });
         mapView.addOnDidFailLoadingMapListener(error -> {
             status.setText(R.string.map_error);
             retryButton.setVisibility(View.VISIBLE);
@@ -419,6 +444,11 @@ public class MapActivity extends AppCompatActivity {
         }
     }
 
+    private void openRouteEditor() {
+        planEditorLauncher.launch(new Intent(this, RouteEditorActivity.class)
+                .putExtra(RouteEditorActivity.EXTRA_PLAN, routePlan.toBundle()));
+    }
+
     private void startTrip() {
         if (routeViewModel.currentState().status != RouteViewModel.Status.READY) return;
         if (!hasFreshLocation()) {
@@ -427,6 +457,7 @@ public class MapActivity extends AppCompatActivity {
             return;
         }
         trip.start(true, true);
+        questPreview = false;
         centerOnNextFix = false;
         centerOnDestination = false;
         map.getLocationComponent().forceLocationUpdate(currentLocation);
@@ -436,6 +467,7 @@ public class MapActivity extends AppCompatActivity {
 
     private void endTrip() {
         trip.stop();
+        questPreview = false;
         applyTripMode(false);
         renderTripControls();
     }
@@ -452,12 +484,38 @@ public class MapActivity extends AppCompatActivity {
                     : trip.isFollowing() ? R.string.trip_following : R.string.trip_browsing);
         }
         locateButton.setText(active ? R.string.follow_vehicle : R.string.my_location);
-        findViewById(R.id.search_places_button).setEnabled(!active);
+        findViewById(R.id.search_places_button).setVisibility(active ? View.GONE : View.VISIBLE);
+        findViewById(R.id.route_points_button).setVisibility(active ? View.VISIBLE : View.GONE);
         routeButton.setVisibility(destination == null || active ? View.GONE : View.VISIBLE);
         clearDestinationButton.setVisibility(destination == null || active ? View.GONE : View.VISIBLE);
         destinationLabel.setVisibility(destination == null || active ? View.GONE : View.VISIBLE);
         status.setVisibility(active ? View.GONE : View.VISIBLE);
+        if (!active) questPreview = false;
+        questPanel.setVisibility(active && questPreview ? View.VISIBLE : View.GONE);
+        Button previewButton = findViewById(R.id.quest_preview_button);
+        previewButton.setVisibility(active ? View.VISIBLE : View.GONE);
+        previewButton.setText(questPreview ? R.string.hide_quest_panel : R.string.show_quest_panel);
         if (mapView != null) mapView.setKeepScreenOn(active && resumed);
+    }
+
+    private void renderQuestPanel(QuestPanelViewModel.State state) {
+        if (state.status == QuestPanelViewModel.Status.CONTENT) {
+            questPanelTitle.setText(state.title);
+            questPanelIntro.setText(state.introduction);
+            StringBuilder observations = new StringBuilder();
+            for (int index = 0; index < state.observations.size(); index++) {
+                if (index > 0) observations.append("\n\n");
+                observations.append(index + 1).append(". ").append(state.observations.get(index));
+            }
+            questPanelObservations.setText(observations.length() == 0
+                    ? getString(R.string.quest_placeholder_observations) : observations.toString());
+        } else {
+            questPanelTitle.setText(state.status == QuestPanelViewModel.Status.LOADING
+                    ? R.string.quest_panel_loading : R.string.quest_placeholder_title);
+            questPanelIntro.setText(state.status == QuestPanelViewModel.Status.ERROR
+                    ? R.string.quest_panel_error : R.string.quest_placeholder_intro);
+            questPanelObservations.setText(R.string.quest_placeholder_observations);
+        }
     }
 
     private void applyTripMode(boolean recenter) {
@@ -630,6 +688,7 @@ public class MapActivity extends AppCompatActivity {
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putBoolean(STATE_QUEST_PREVIEW, questPreview);
         outState.putBundle(STATE_TRIP, trip.save());
         outState.putBundle(STATE_PLAN, routePlan.toBundle());
         outState.putInt(STATE_ROUTE_CAMERA, fittedRouteId);
