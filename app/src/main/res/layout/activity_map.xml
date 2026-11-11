@@ -1,152 +1,285 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Integrated navigation screen.
+  Root is transparent so the MapView behind this overlay remains visible.
+
+  View IDs are kept identical to the previous production layout so MapActivity.java
+  requires zero changes.
+
+  Layer 0 (bottom): MapView (map_view)
+  Layer 1: Transparent overlay — left menu | center route/quest | right search
+  Layer 2 (top): map_status, retry_button, map_attribution
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/navigation_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:background="@android:color/transparent"
     android:fitsSystemWindows="true">
 
-    <LinearLayout
+    <!-- Layer 0: Map (full-screen behind everything) -->
+    <org.maplibre.android.maps.MapView
+        android:id="@+id/map_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:orientation="horizontal">
-        <Button
-            android:id="@+id/back_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="@string/back" />
-        <TextView
+        android:layout_height="match_parent" />
+
+    <!-- Layer 1: UI overlay -->
+    <LinearLayout
+        android:id="@+id/navigation_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:paddingStart="0dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="0dp">
+
+        <!-- Left menu -->
+        <FrameLayout
+            android:id="@+id/menu_area"
+            android:layout_width="120dp"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/tobira_logo"
+                android:layout_width="86dp"
+                android:layout_height="86dp"
+                android:layout_gravity="top|center_horizontal"
+                android:adjustViewBounds="true"
+                android:contentDescription="TOBIRA"
+                android:scaleType="fitCenter"
+                android:src="@drawable/tobira_logo_fordark" />
+
+            <LinearLayout
+                android:id="@+id/menu_bar"
+                android:layout_width="112dp"
+                android:layout_height="360dp"
+                android:layout_gravity="bottom|start"
+                android:background="@drawable/bg_menubar"
+                android:gravity="bottom"
+                android:orientation="vertical"
+                android:paddingStart="0dp"
+                android:paddingEnd="22dp"
+                android:paddingBottom="16dp">
+
+                <!-- Route tab (selected state applied via setBackground in Java) -->
+                <ImageButton
+                    android:id="@+id/nav_route"
+                    android:layout_width="match_parent"
+                    android:layout_height="82dp"
+                    android:background="@drawable/nav_item_selected_bg"
+                    android:contentDescription="ルート"
+                    android:padding="22dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ico_route" />
+
+                <ImageButton
+                    android:id="@+id/nav_quest"
+                    android:layout_width="match_parent"
+                    android:layout_height="82dp"
+                    android:background="@drawable/nav_item_bg"
+                    android:contentDescription="クエスト"
+                    android:padding="22dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ico_quest" />
+
+                <ImageButton
+                    android:id="@+id/nav_user"
+                    android:layout_width="match_parent"
+                    android:layout_height="82dp"
+                    android:background="@drawable/nav_item_bg"
+                    android:contentDescription="ユーザー"
+                    android:padding="22dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ico_user" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Center column: route editor and quest panel (toggled by switchPanel) -->
+        <FrameLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="@string/map_title"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-        <Button
-            android:id="@+id/quest_preview_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="@string/show_quest_panel"
-            android:visibility="gone" />
+            android:layout_height="match_parent"
+            android:layout_marginStart="18dp"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="18dp"
+            android:layout_weight="1.05">
 
-        <Button
-            android:id="@+id/route_points_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="@string/route_points"
-            android:visibility="gone" />
+            <!-- Route editor panel -->
+            <LinearLayout
+                android:id="@+id/panel_route_editor"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_route_panel"
+                android:orientation="vertical"
+                android:padding="24dp">
 
-        <Button
-            android:id="@+id/search_places_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="@string/edit_route" />
+                <!-- Waypoint list (shown when not searching) -->
+                <LinearLayout
+                    android:id="@+id/route_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/waypoint_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        android:overScrollMode="never"
+                        android:scrollbars="vertical" />
+                </LinearLayout>
+
+                <!-- Route summary and GO button row -->
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:id="@+id/route_summary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:layout_toStartOf="@+id/go_button"
+                        android:layout_marginEnd="8dp"
+                        android:textColor="#FF1EB9B4"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/go_button"
+                        android:layout_width="116dp"
+                        android:layout_height="56dp"
+                        android:layout_alignParentEnd="true"
+                        android:background="@drawable/bg_go_button"
+                        android:text="GO"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="30sp"
+                        android:textStyle="bold" />
+                </RelativeLayout>
+            </LinearLayout>
+
+            <!-- Quest panel (toggled by switchPanel, initially gone via panel_quest.xml) -->
+            <include layout="@layout/panel_quest" />
+        </FrameLayout>
+
+        <!-- Right: place search panel -->
+        <FrameLayout
+            android:id="@+id/place_search_panel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="34dp"
+            android:layout_weight="1.35">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <!-- Search input -->
+                <LinearLayout
+                    android:id="@+id/search_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="58dp"
+                    android:background="@drawable/bg_search_field"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="22dp"
+                    android:paddingEnd="18dp">
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:contentDescription="検索"
+                        android:src="@drawable/ic_search" />
+
+                    <EditText
+                        android:id="@+id/route_search"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:hint="@string/place_query_hint"
+                        android:imeOptions="actionSearch"
+                        android:inputType="textCapWords"
+                        android:maxLength="200"
+                        android:padding="0dp"
+                        android:singleLine="true"
+                        android:textColor="#FF111111"
+                        android:textColorHint="#FF666666"
+                        android:textSize="23sp" />
+                </LinearLayout>
+
+                <!-- Search results (shown when search panel open, hidden otherwise) -->
+                <ListView
+                    android:id="@+id/search_results"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_search_results_bubble"
+                    android:divider="@null"
+                    android:dividerHeight="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="8dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Current location button (bottom-right) -->
+            <ImageButton
+                android:id="@+id/my_location_button"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_gravity="bottom|end"
+                android:background="@drawable/bg_current_location_button"
+                android:contentDescription="現在地"
+                android:padding="19dp"
+                android:src="@drawable/ic_navigation"
+                android:scaleType="centerInside" />
+        </FrameLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/destination_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:accessibilityLiveRegion="polite"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/build_route_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:text="@string/build_route"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/trip_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:text="@string/start_trip"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/trip_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="4dp"
-        android:accessibilityLiveRegion="polite"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/route_summary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="4dp"
-        android:accessibilityLiveRegion="polite"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/clear_destination_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:text="@string/clear_destination"
-        android:visibility="gone" />
+    <!-- Layer 2: Status / utility views floating over map -->
 
     <TextView
         android:id="@+id/map_status"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:accessibilityLiveRegion="polite"
-        android:text="@string/map_loading" />
+        android:layout_gravity="top|start"
+        android:layout_marginStart="140dp"
+        android:layout_marginTop="8dp"
+        android:background="#88000000"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:textColor="#FFFFFFFF"
+        android:textSize="12sp" />
 
     <Button
         android:id="@+id/retry_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="64dp"
+        android:layout_gravity="center"
         android:text="@string/retry"
         android:visibility="gone" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:baselineAligned="false">
-
-        <include layout="@layout/panel_quest" />
-
-        <org.maplibre.android.maps.MapView
-            android:id="@+id/map_view"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="5" />
-    </LinearLayout>
-
     <TextView
         android:id="@+id/map_attribution"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:gravity="center"
-        android:text="@string/route_attribution" />
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="140dp"
+        android:layout_marginBottom="4dp"
+        android:background="#88000000"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp"
+        android:text="@string/osm_attribution"
+        android:textColor="#CCFFFFFF"
+        android:textSize="10sp" />
 
-    <Button
-        android:id="@+id/my_location_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:minHeight="64dp"
-        android:enabled="false"
-        android:text="@string/my_location" />
-</LinearLayout>
+</FrameLayout>
