@@ -21,6 +21,8 @@
     <uses-permission android:name="android.car.permission.CAR_DYNAMICS_STATE" />
     <uses-permission android:name="android.car.permission.CONTROL_CAR_SEATS" />
     <uses-permission android:name="android.car.permission.CONTROL_CAR_WINDOWS" />
+    <!-- Doors: outside the support list, bench check only (system permission, likely not granted) -->
+    <uses-permission android:name="android.car.permission.CONTROL_CAR_DOORS" />
 
     <uses-feature
         android:name="android.hardware.type.automotive"

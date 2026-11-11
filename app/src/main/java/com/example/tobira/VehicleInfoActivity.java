@@ -177,23 +177,32 @@ public class VehicleInfoActivity extends AppCompatActivity {
             }
 
             if (value != null) received++;
-            valueViews[i].setText(value != null ? value : "—");
-            updatedViews[i].setText(updatedText(status, manager.getLastUpdateMs(id), now));
-            rowViews[i].setVisibility(onlyReceived && value == null ? View.GONE : View.VISIBLE);
+            setTextIfChanged(valueViews[i], value != null ? value : "—");
+            setTextIfChanged(updatedViews[i], updatedText(status, manager.getLastUpdateMs(id), now));
+            int visibility = onlyReceived && value == null ? View.GONE : View.VISIBLE;
+            if (rowViews[i].getVisibility() != visibility) rowViews[i].setVisibility(visibility);
         }
 
-        summaryView.setText(getString(R.string.vehicle_info_summary,
+        setTextIfChanged(summaryView, getString(R.string.vehicle_info_summary,
                 getString(connected ? R.string.vehicle_info_connected : R.string.vehicle_info_not_connected),
                 readable, propertyIds.length, received, notSupported, denied, errors));
-        liveView.setText(getString(R.string.vehicle_info_live,
+        setTextIfChanged(liveView, getString(R.string.vehicle_info_live,
                 String.format(Locale.US, "%.1f km/h", manager.getSpeedKmh()),
                 gearName(manager.getGear()),
                 String.format(Locale.US, "%.1f°", manager.getSteeringAngleDeg())));
     }
 
     private void setStatus(int row, int textRes, int color) {
-        statusViews[row].setText(textRes);
-        statusViews[row].setTextColor(color);
+        setTextIfChanged(statusViews[row], getString(textRes));
+        if (statusViews[row].getCurrentTextColor() != color) statusViews[row].setTextColor(color);
+    }
+
+    /**
+     * Re-laying out every row every 0.5 s makes dragging jerky, so only update text that changed.
+     * 毎回全行を再レイアウトするとスクロールが引っかかるため、変化した文字だけ更新する。
+     */
+    private static void setTextIfChanged(TextView view, String text) {
+        if (!TextUtils.equals(view.getText(), text)) view.setText(text);
     }
 
     private String updatedText(VehicleFlagManager.PropertyStatus status, long lastMs, long now) {

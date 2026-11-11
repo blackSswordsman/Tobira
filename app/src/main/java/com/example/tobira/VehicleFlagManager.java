@@ -6,6 +6,7 @@ import android.car.hardware.CarPropertyConfig;
 import android.car.hardware.CarPropertyValue;
 import android.car.hardware.property.CarPropertyManager;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -107,8 +108,9 @@ public class VehicleFlagManager {
     };
 
     /**
-     * Every property in the support list that an app can read (62 of 76).
-     * サポートリストのうちアプリが読めるプロパティすべて（76件中62件）。
+     * Every property in the support list that an app can read (62 of 76), plus 3 door properties
+     * outside the list for a bench check (65 in total).
+     * サポートリストのうちアプリが読めるプロパティすべて（76件中62件）＋ベンチ確認用のドア3件（計65件）。
      *
      * Not included / 含めないもの:
      *  - Access "–" in the list (9): INFO_VIN, NIGHT_MODE, AP_POWER_STATE_REQ, AP_POWER_STATE_REPORT,
@@ -189,6 +191,12 @@ public class VehicleFlagManager {
             // ETC
             VehiclePropertyIds.ELECTRONIC_TOLL_COLLECTION_CARD_TYPE,
             VehiclePropertyIds.ELECTRONIC_TOLL_COLLECTION_CARD_STATUS,
+            // Doors (NOT in the support list, bench check only) / ドア（サポートリスト外・ベンチ確認用）
+            // Needs CONTROL_CAR_DOORS (system permission), so likely "no permission" or "not supported".
+            // Values only, no flags yet. / 値のみ取得（フラグなし）。
+            VehiclePropertyIds.DOOR_POS,
+            VehiclePropertyIds.DOOR_LOCK,
+            VehiclePropertyIds.DOOR_CHILD_LOCK_ENABLED,           // API 34+
     };
 
     private final Context context;
@@ -208,6 +216,8 @@ public class VehicleFlagManager {
     private final Map<Integer, PropertyStatus> statusByProperty = new ConcurrentHashMap<>();
     /** When each property last delivered a value (System.currentTimeMillis). / 最終更新時刻。 */
     private final Map<Integer, Long> lastUpdateMs = new ConcurrentHashMap<>();
+    /** Area type (door, seat, window…) of each property, from its config. / エリア種別。 */
+    private final Map<Integer, Integer> areaTypeByProperty = new ConcurrentHashMap<>();
 
     /** Result of trying to read a property. / プロパティの取得結果。 */
     public enum PropertyStatus {
@@ -410,9 +420,18 @@ public class VehicleFlagManager {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<Integer, String> e : byArea.entrySet()) {
             if (sb.length() > 0) sb.append('\n');
-            sb.append("area 0x").append(Integer.toHexString(e.getKey())).append(": ").append(e.getValue());
+            sb.append(getAreaLabel(propertyId, e.getKey())).append(": ").append(e.getValue());
         }
         return sb.toString();
+    }
+
+    /**
+     * Readable area name, e.g. DOOR_POS area 0x4 → "前列・右 (0x4)". / エリア名（例：前列・右）。
+     * Left / right are from the car's point of view (right-hand drive: 前列・右 = driver side).
+     */
+    public String getAreaLabel(int propertyId, int areaId) {
+        Integer areaType = areaTypeByProperty.get(propertyId);
+        return VehicleAreaNames.label(areaType != null ? areaType : -1, areaId);
     }
 
     // ---- Threshold setters / しきい値の設定 ----
@@ -426,15 +445,46 @@ public class VehicleFlagManager {
     // Reading / 取得
     // =====================================================================
 
+    /**
+     * System-level (signature|privileged) permission needed to read a property, or null if not listed here.
+     * Only properties whose permission is certain are listed. Normal apps cannot get these permissions.
+     * 読取にシステム権限が必要なプロパティ（通常アプリには付与されない）。
+     */
+    private static String requiredSystemPermission(int propertyId) {
+        switch (propertyId) {
+            case VehiclePropertyIds.DOOR_POS:
+            case VehiclePropertyIds.DOOR_LOCK:
+            case VehiclePropertyIds.DOOR_CHILD_LOCK_ENABLED:
+                return "android.car.permission.CONTROL_CAR_DOORS";
+            case VehiclePropertyIds.WINDOW_POS:
+            case VehiclePropertyIds.WINDOW_LOCK:
+                return "android.car.permission.CONTROL_CAR_WINDOWS";
+            case VehiclePropertyIds.PERF_ODOMETER:
+                return "android.car.permission.CAR_MILEAGE";
+            default:
+                return null;
+        }
+    }
+
     private void readOrSubscribe(int propertyId) {
         String name = VehiclePropertyIds.toString(propertyId);
         try {
             CarPropertyConfig<?> config = propertyManager.getCarPropertyConfig(propertyId);
             if (config == null) {
-                statusByProperty.put(propertyId, PropertyStatus.NOT_SUPPORTED);
-                Log.i(TAG, "Not supported / 非対応: " + name);
+                // The car service returns null both when the car lacks the property and when the app lacks
+                // the permission. Tell them apart for properties whose permission is known.
+                // 「非対応」と「権限なし」でどちらも null になるため、必要権限が分かるものは区別する。
+                String permission = requiredSystemPermission(propertyId);
+                if (permission != null && context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+                    statusByProperty.put(propertyId, PropertyStatus.NO_PERMISSION);
+                    Log.i(TAG, "No permission / 権限なし: " + name + " (" + permission + ")");
+                } else {
+                    statusByProperty.put(propertyId, PropertyStatus.NOT_SUPPORTED);
+                    Log.i(TAG, "Not supported / 非対応: " + name);
+                }
                 return;
             }
+            areaTypeByProperty.put(propertyId, config.getAreaType());
             if (config.getAccess() == CarPropertyConfig.VEHICLE_PROPERTY_ACCESS_WRITE) {
                 statusByProperty.put(propertyId, PropertyStatus.WRITE_ONLY);
                 Log.i(TAG, "Write-only, skipped / 書き込み専用: " + name);
