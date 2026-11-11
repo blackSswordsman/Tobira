@@ -1,11 +1,13 @@
 <resources>
     <style name="Theme.Tobira" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="colorPrimary">@color/tobira_teal</item>
+        <item name="colorPrimaryVariant">@color/tobira_teal_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/tobira_teal_mid</item>
+        <item name="colorSecondaryVariant">@color/tobira_teal_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">@color/tobira_node_bg</item>
+        <item name="android:windowBackground">@color/tobira_node_bg</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>
