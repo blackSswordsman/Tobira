@@ -30,7 +30,7 @@
     <string name="continue_action">続ける</string>
     <string name="cancel">キャンセル</string>
     <string name="osm_attribution"><a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a></string>
-    <string name="map_style_url" translatable="false">https://tiles.openfreemap.org/styles/liberty</string>
+    <string name="map_style_url" translatable="false">https://tiles.openfreemap.org/styles/dark</string>
     <string name="map_not_connected">地図はまだ利用できません。</string>
     <string name="search_places">場所を検索</string>
     <string name="place_query_hint">場所の名前や住所</string>
@@ -122,4 +122,7 @@
     <string name="challenge_unavailable">課題を開けませんでした。最後の試練は、他のクエストをすべてクリアするまでロックされています。通信や読み込みの問題の場合は、閉じてからもう一度お試しください。</string>
     <string name="challenge_no_remaining">現在、取り組める未完了の課題はありません。</string>
     <string name="challenge_vehicle_pending">安全な場所に停車して取り組んでください。車両操作による回答の自動判定は準備中です。この画面を開くだけではクリアになりません。</string>
+    <string name="unset_waypoint">（未設定）</string>
+    <string name="add_stop_between">この区間に経由地を追加</string>
+    <string name="drag_handle_desc">ドラッグして並べ替え</string>
 </resources>
