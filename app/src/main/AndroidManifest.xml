@@ -20,6 +20,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Tobira">
         <activity
+            android:name=".RouteEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PlaceSearchActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".MapActivity"
             android:exported="false" />
         <activity
