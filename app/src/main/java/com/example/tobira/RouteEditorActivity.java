@@ -15,6 +15,7 @@ import java.util.Collections;
 /** Edits a draft. Back/cancel never mutates the map's current plan. */
 public class RouteEditorActivity extends AppCompatActivity {
     public static final String EXTRA_PLAN = "com.example.tobira.ROUTE_PLAN";
+    public static final String EXTRA_OPEN_MAP = "com.example.tobira.OPEN_MAP";
     private static final int START = -1;
     private static final int FINISH = -2;
     private static final int ADD_STOP = -3;
@@ -60,7 +61,11 @@ public class RouteEditorActivity extends AppCompatActivity {
         findViewById(R.id.add_stop).setOnClickListener(view -> search(ADD_STOP));
         findViewById(R.id.apply_route).setOnClickListener(view -> {
             if (!plan.isComplete()) return;
-            setResult(RESULT_OK, new Intent().putExtra(EXTRA_PLAN, plan.toBundle()));
+            if (getIntent().getBooleanExtra(EXTRA_OPEN_MAP, false)) {
+                startActivity(new Intent(this, MapActivity.class).putExtra(EXTRA_PLAN, plan.toBundle()));
+            } else {
+                setResult(RESULT_OK, new Intent().putExtra(EXTRA_PLAN, plan.toBundle()));
+            }
             finish();
         });
         render();
@@ -75,6 +80,8 @@ public class RouteEditorActivity extends AppCompatActivity {
     }
 
     private void render() {
+        ((android.widget.TextView) findViewById(R.id.editor_order_hint)).setText(
+                plan.isQuestRoute() ? R.string.quest_itinerary_hint : R.string.route_order_hint);
         Button start = findViewById(R.id.select_start);
         start.setText(plan.useCurrentLocation ? getString(R.string.current_start)
                 : plan.start == null ? getString(R.string.choose_start) : plan.start.address);
@@ -82,6 +89,9 @@ public class RouteEditorActivity extends AppCompatActivity {
                 ? getString(R.string.choose_finish) : plan.destination.address);
         findViewById(R.id.apply_route).setEnabled(plan.isComplete());
         findViewById(R.id.add_stop).setEnabled(plan.stops.size() < RoutePlan.MAX_STOPS);
+        findViewById(R.id.select_finish).setEnabled(!plan.isQuestRoute());
+        findViewById(R.id.add_stop).setVisibility(plan.isQuestRoute()
+                ? android.view.View.GONE : android.view.View.VISIBLE);
         stopRows.removeAllViews();
         for (int index = 0; index < plan.stops.size(); index++) {
             final int position = index;
@@ -92,6 +102,7 @@ public class RouteEditorActivity extends AppCompatActivity {
             row.addView(place, new LinearLayout.LayoutParams(0,
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             place.setOnClickListener(view -> search(position));
+            place.setEnabled(!plan.isQuestRoute());
             Button up = button(getString(R.string.move_up));
             up.setEnabled(index > 0);
             up.setOnClickListener(view -> {
@@ -111,6 +122,7 @@ public class RouteEditorActivity extends AppCompatActivity {
                 plan.stops.remove(position);
                 render();
             });
+            remove.setVisibility(plan.isQuestRoute() ? android.view.View.GONE : android.view.View.VISIBLE);
             row.addView(remove);
             stopRows.addView(row);
         }

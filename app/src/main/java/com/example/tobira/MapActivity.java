@@ -92,6 +92,7 @@ public class MapActivity extends AppCompatActivity {
                 endTrip();
                 routeViewModel.clear();
                 routePlan = selected;
+                selectQuestPreview();
                 destination = routePlan.destination;
                 centerOnNextFix = false;
                 centerOnDestination = true;
@@ -182,6 +183,11 @@ public class MapActivity extends AppCompatActivity {
             destination = routePlan.destination;
             centerOnNextFix = destination == null;
             fittedRouteId = savedInstanceState.getInt(STATE_ROUTE_CAMERA, -1);
+        } else if (getIntent().hasExtra(RouteEditorActivity.EXTRA_PLAN)) {
+            routePlan = RoutePlan.fromBundle(getIntent().getBundleExtra(RouteEditorActivity.EXTRA_PLAN));
+            destination = routePlan.destination;
+            centerOnNextFix = false;
+            centerOnDestination = true;
         }
         setContentView(R.layout.activity_map);
         destinationLabel = findViewById(R.id.destination_label);
@@ -194,6 +200,7 @@ public class MapActivity extends AppCompatActivity {
         questPanelTitle = findViewById(R.id.quest_panel_title);
         questPanelIntro = findViewById(R.id.quest_panel_intro);
         questPanelObservations = findViewById(R.id.quest_panel_observations);
+        selectQuestPreview();
         new ViewModelProvider(this).get(QuestPanelViewModel.class).getState()
                 .observe(this, this::renderQuestPanel);
         routeButton = findViewById(R.id.build_route_button);
@@ -221,6 +228,7 @@ public class MapActivity extends AppCompatActivity {
             endTrip();
             routeViewModel.clear();
             routePlan = new RoutePlan();
+            selectQuestPreview();
             destination = null;
             centerOnDestination = false;
             renderDestination();
@@ -442,6 +450,12 @@ public class MapActivity extends AppCompatActivity {
             map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), padding));
             fittedRouteId = state.requestId;
         }
+    }
+
+    private void selectQuestPreview() {
+        Place point = routePlan.stops.isEmpty() ? routePlan.destination : routePlan.stops.get(0);
+        new ViewModelProvider(this).get(QuestPanelViewModel.class)
+                .selectQuest(routePlan.isQuestRoute() ? point : null);
     }
 
     private void openRouteEditor() {

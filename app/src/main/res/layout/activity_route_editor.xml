@@ -36,6 +36,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/editor_order_hint"
             android:text="@string/route_order_hint" />
         <LinearLayout
             android:id="@+id/stop_rows"

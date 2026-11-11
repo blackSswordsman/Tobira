@@ -116,4 +116,26 @@
     <string name="show_quest_panel">クエストを見る</string>
     <string name="hide_quest_panel">クエストを閉じる</string>
     <string name="route_points">ルートと経由地</string>
+    <string name="quest_routes">クエストルート</string>
+    <string name="catalog_intro">場所ごとのクエストを巡り、最後の試練を目指しましょう。</string>
+    <string name="catalog_loading">読み込み中…</string>
+    <string name="catalog_error">読み込めませんでした。もう一度お試しください。</string>
+    <string name="catalog_empty">公開されているルートはまだありません。</string>
+    <string name="catalog_choose">ルートを選んで詳細を見る</string>
+    <string name="quest_route_order">表示順はおすすめです。最後の試練以外は、好きな順番で挑戦できます。</string>
+    <string name="quest_route_progress">クリアしたクエスト：%1$d / %2$d</string>
+    <string name="quest_route_completed">メインクエストをクリアしました。</string>
+    <string name="quest_finale_unlocked">最後の試練が開放されました。</string>
+    <string name="quest_finale_locked">🔒 最後の試練はロックされています。</string>
+    <string name="quest_state_locked">🔒 ロック中</string>
+    <string name="quest_state_completed">クリア済み</string>
+    <string name="quest_state_in_progress">進行中</string>
+    <string name="quest_state_available">挑戦可能</string>
+    <string name="quest_finale_label">最後の試練</string>
+    <string name="quest_route_member">%1$d. %2$s\n%3$s</string>
+    <string name="quest_unlock_requirement">他のクエストをすべてクリアすると開放されます。現在：%1$d / %2$d。場所への訪問は制限されません。</string>
+    <string name="quest_content_pending">クエストの内容は準備中です。</string>
+    <string name="quest_close">閉じる</string>
+    <string name="start_quest_journey">旅を始める</string>
+    <string name="quest_itinerary_hint">出発地と立ち寄る順番を選んでください。灯台は最後の目的地です。表示地点は施設の位置です。駐車場・入口は現地の案内をご確認ください。</string>
 </resources>

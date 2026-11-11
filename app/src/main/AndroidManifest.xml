@@ -39,6 +39,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Tobira">
         <activity
+            android:name=".RouteCatalogActivity"
+            android:exported="false" />
+        <activity
             android:name=".RouteEditorActivity"
             android:exported="false" />
         <activity

@@ -13,6 +13,7 @@ public final class DemoQuestApplication extends Application {
         QuestRepository repository = QuestRepository.getInstance(this);
         repository.initialize()
                 .thenCompose(ignored -> DemoQuestCatalog.install(repository))
+                .thenCompose(ignored -> IzumoQuestCatalog.install(repository))
                 .whenComplete((added, error) -> {
                     if (error != null) {
                         Log.e("DemoQuest", "Cannot install demo quest", error);
