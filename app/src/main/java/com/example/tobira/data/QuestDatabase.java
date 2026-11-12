@@ -11,8 +11,8 @@ import com.example.tobira.data.QuestEntities.*;
 
 @Database(entities = {Place.class, PlaceKey.class, Quest.class, PlaceQuest.class, Step.class,
         Progress.class, CompletedStep.class, QuestRouteEntities.Route.class,
-        QuestRouteEntities.Member.class}, version = 2, exportSchema = true,
-        autoMigrations = @AutoMigration(from = 1, to = 2))
+        QuestRouteEntities.Member.class, QuestArrival.class}, version = 3, exportSchema = true,
+        autoMigrations = {@AutoMigration(from = 1, to = 2), @AutoMigration(from = 2, to = 3)})
 public abstract class QuestDatabase extends RoomDatabase {
     private static volatile QuestDatabase instance;
 

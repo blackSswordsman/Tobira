@@ -14,11 +14,12 @@ public final class QuestChallengeDialog extends DialogFragment {
     public static final String TAG = "quest-challenge";
     private QuestRepository.ChallengeInfo info;
 
-    public static QuestChallengeDialog create(String id, int version) {
+    public static QuestChallengeDialog create(String id, int version, Place place) {
         QuestChallengeDialog fragment = new QuestChallengeDialog();
         Bundle args = new Bundle();
         args.putString("quest", id);
         args.putInt("version", version);
+        if (place != null) args.putBundle("arrival-place", place.toBundle());
         fragment.setArguments(args);
         return fragment;
     }
@@ -37,12 +38,17 @@ public final class QuestChallengeDialog extends DialogFragment {
         AlertDialog dialog = (AlertDialog) requireDialog();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
         Bundle args = requireArguments();
-        QuestRepository.getInstance(requireContext()).openChallenge(args.getString("quest"),
-                args.getInt("version")).whenComplete((value, error) ->
+        QuestArrivalTarget target = QuestArrivalTarget.from(Place.fromBundle(args.getBundle("arrival-place")));
+        if (target != null && (!target.questId.equals(args.getString("quest"))
+                || target.questVersion != args.getInt("version"))) target = null;
+        QuestRepository.getInstance(requireContext()).openChallengeForPlace(target).whenComplete((value, error) ->
                 new Handler(Looper.getMainLooper()).post(() -> {
                     if (!isAdded() || getDialog() != dialog) return;
                     if (error != null) {
-                        dialog.setMessage(getString(R.string.challenge_unavailable));
+                        Throwable cause = error;
+                        while (cause.getCause() != null) cause = cause.getCause();
+                        dialog.setMessage(getString(cause instanceof QuestRepository.ArrivalRequiredException
+                                ? R.string.arrival_required : R.string.challenge_unavailable));
                         return;
                     }
                     info = value;

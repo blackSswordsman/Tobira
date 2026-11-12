@@ -19,6 +19,17 @@ public interface QuestDao {
     List<Place> getPlacesForQuest(String id, int version);
 
     @Insert(onConflict = OnConflictStrategy.IGNORE) void ensurePlaceLinks(List<PlaceQuest> links);
+    @Insert(onConflict = OnConflictStrategy.IGNORE) long recordArrival(QuestArrival arrival);
+
+    @Query("SELECT * FROM quest_arrivals WHERE questId = :id AND questVersion = :version AND placeKey = :key")
+    QuestArrival getArrival(String id, int version, String key);
+
+    @Query("SELECT * FROM quest_arrivals WHERE questId = :id AND questVersion = :version AND placeKey = :key")
+    LiveData<QuestArrival> observeArrival(String id, int version, String key);
+
+    @Query("DELETE FROM quest_arrivals WHERE questId = :id AND questVersion = :version")
+    void resetArrivals(String id, int version);
+
     @Upsert void putPlaces(List<Place> places);
     @Insert(onConflict = OnConflictStrategy.ABORT) void addPlaceKeys(List<PlaceKey> keys);
     @Insert(onConflict = OnConflictStrategy.ABORT) void addQuest(Quest quest);

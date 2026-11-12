@@ -162,6 +162,56 @@ public class IzumoQuestCatalogTest {
                 .get(10, TimeUnit.SECONDS).stops.size());
     }
 
+    @Test public void arrivalPersistsAndRemainsScopedToItsPlace() throws Exception {
+        IzumoQuestCatalog.install(repository).get(10, TimeUnit.SECONDS);
+        RoutePlan plan = repository.getRoutePlan(IzumoQuestCatalog.ROUTE_ID, 1).get(10, TimeUnit.SECONDS);
+        Place point = plan.stops.get(0);
+        QuestArrivalTarget target = QuestArrivalTarget.from(point);
+        assertArrivalBlocked(target);
+        long now = android.os.SystemClock.elapsedRealtimeNanos();
+        assertFalse(repository.recordArrival(target, new ArrivalPolicy.Fix(
+                point.latitude + 1, point.longitude, 10, now), now).get(10, TimeUnit.SECONDS));
+        assertTrue(repository.recordArrival(target, new ArrivalPolicy.Fix(
+                point.latitude, point.longitude, 10, now), now).get(10, TimeUnit.SECONDS));
+        assertNull(repository.getProgress(point.questId, 1).get(10, TimeUnit.SECONDS));
+        database.close();
+        open();
+        assertNotNull(repository.openChallengeForPlace(target).get(10, TimeUnit.SECONDS).step);
+        assertTrue(repository.getCompletedSteps(point.questId, 1).get(10, TimeUnit.SECONDS).isEmpty());
+        assertArrivalBlocked(QuestArrivalTarget.from(new Place("Other", "", point.latitude + 0.01,
+                point.longitude).withQuest(point.questId, 1)));
+        assertArrivalBlocked(QuestArrivalTarget.from(point.withQuest(point.questId, 2)));
+        assertArrivalBlocked(QuestArrivalTarget.from(plan.stops.get(1)));
+        repository.resetProgress(point.questId, 1).get(10, TimeUnit.SECONDS);
+        assertArrivalBlocked(target);
+    }
+
+    @Test public void gpsArrivalDoesNotUnlockFinale() throws Exception {
+        IzumoQuestCatalog.install(repository).get(10, TimeUnit.SECONDS);
+        Place finale = repository.getRoutePlan(IzumoQuestCatalog.ROUTE_ID, 1)
+                .get(10, TimeUnit.SECONDS).destination;
+        QuestArrivalTarget target = QuestArrivalTarget.from(finale);
+        long now = android.os.SystemClock.elapsedRealtimeNanos();
+        assertTrue(repository.recordArrival(target, new ArrivalPolicy.Fix(
+                finale.latitude, finale.longitude, 10, now), now).get(10, TimeUnit.SECONDS));
+        try {
+            repository.openChallengeForPlace(target).get(10, TimeUnit.SECONDS);
+            fail("Locked finale opened");
+        } catch (ExecutionException expected) {
+            assertTrue(expected.getCause() instanceof IllegalStateException);
+            assertFalse(expected.getCause() instanceof QuestRepository.ArrivalRequiredException);
+        }
+    }
+
+    private void assertArrivalBlocked(QuestArrivalTarget target) throws Exception {
+        try {
+            repository.openChallengeForPlace(target).get(10, TimeUnit.SECONDS);
+            fail("Challenge opened without arrival");
+        } catch (ExecutionException expected) {
+            assertTrue(expected.getCause() instanceof QuestRepository.ArrivalRequiredException);
+        }
+    }
+
     @Test public void migrationFromV1PreservesQuestAndCheckpoint() throws Exception {
         // The v2 schema only adds these two tables. Remove them to recreate the v1 schema,
         // with its original Room identity, while retaining a real saved checkpoint.
@@ -172,6 +222,7 @@ public class IzumoQuestCatalogTest {
         database.close();
         try (SQLiteDatabase old = SQLiteDatabase.openDatabase(
                 context.getDatabasePath(name).getPath(), null, SQLiteDatabase.OPEN_READWRITE)) {
+            old.execSQL("DROP TABLE quest_arrivals");
             old.execSQL("DROP TABLE quest_route_members");
             old.execSQL("DROP TABLE quest_routes");
             old.execSQL("UPDATE room_master_table SET identity_hash = 'e88d68aac24f6ce15ac019abf3821269' WHERE id = 42");

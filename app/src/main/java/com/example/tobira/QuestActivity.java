@@ -54,6 +54,8 @@ public class QuestActivity extends AppCompatActivity {
 
     private RoutePlan routePlan;
     private Place nextPlace;
+    private QuestArrivalViewModel arrivalModel;
+    private boolean questHasContent;
 
     private final LocationListener locationListener = new LocationListener() {
         @Override
@@ -78,6 +80,10 @@ public class QuestActivity extends AppCompatActivity {
         nextPlace  = Place.fromBundle(getIntent().getBundleExtra(EXTRA_NEXT_PLACE));
 
         setContentView(R.layout.activity_quest);
+        arrivalModel = new ViewModelProvider(this).get(QuestArrivalViewModel.class);
+        arrivalModel.selectTarget(nextPlace);
+        arrivalModel.getState().observe(this, ignored -> renderArrival());
+        new QuestArrivalTracker(this, arrivalModel);
 
         // ── Quest content ────────────────────────────────────────────────────
         TextView placeNameView = findViewById(R.id.quest_place_name);
@@ -88,7 +94,6 @@ public class QuestActivity extends AppCompatActivity {
         questVm.getState().observe(this, state -> {
             TextView desc = findViewById(R.id.quest_description);
             TextView obs  = findViewById(R.id.quest_observations);
-            Button returnBtn = findViewById(R.id.quest_return_button);
 
             if (state.status == QuestPanelViewModel.Status.CONTENT) {
                 desc.setText(state.introduction);
@@ -99,12 +104,14 @@ public class QuestActivity extends AppCompatActivity {
                 }
                 obs.setText(sb.length() == 0
                         ? getString(R.string.quest_placeholder_observations) : sb.toString());
-                returnBtn.setEnabled(true);
+                questHasContent = true;
+                renderArrival();
             } else {
                 desc.setText(state.status == QuestPanelViewModel.Status.LOADING
                         ? R.string.quest_panel_loading : R.string.quest_placeholder_intro);
                 obs.setText(R.string.quest_placeholder_observations);
-                returnBtn.setEnabled(false);
+                questHasContent = false;
+                renderArrival();
             }
         });
 
@@ -112,10 +119,10 @@ public class QuestActivity extends AppCompatActivity {
         Button returnBtn = findViewById(R.id.quest_return_button);
         returnBtn.setOnClickListener(view -> {
             QuestPanelViewModel.State s = questVm.getState().getValue();
-            if (s == null || s.status != QuestPanelViewModel.Status.CONTENT) return;
+            if (s == null || s.status != QuestPanelViewModel.Status.CONTENT || !arrivalModel.canOpenChallenge()) return;
             if (getSupportFragmentManager().isStateSaved()) return;
             if (getSupportFragmentManager().findFragmentByTag(QuestChallengeDialog.TAG) != null) return;
-            QuestChallengeDialog.create(s.questId, s.questVersion)
+            QuestChallengeDialog.create(s.questId, s.questVersion, nextPlace)
                     .showNow(getSupportFragmentManager(), QuestChallengeDialog.TAG);
         });
 
@@ -171,6 +178,11 @@ public class QuestActivity extends AppCompatActivity {
                 }
             });
         });
+    }
+
+    private void renderArrival() {
+        QuestArrivalUi.render(findViewById(R.id.quest_arrival_status),
+                findViewById(R.id.quest_return_button), arrivalModel.getState().getValue(), questHasContent);
     }
 
     @SuppressLint("MissingPermission")

@@ -169,6 +169,16 @@
                     android:layout_height="wrap_content"
                     android:visibility="gone" />
 
+                <TextView
+                    android:id="@+id/quest_arrival_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/arrival_checking"
+                    android:textColor="#CCFFFFFF"
+                    android:textSize="16sp"
+                    android:accessibilityLiveRegion="polite" />
+
                 <Button
                     android:id="@+id/quest_return_button"
                     android:layout_width="match_parent"

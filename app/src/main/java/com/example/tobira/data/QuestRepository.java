@@ -254,33 +254,68 @@ public final class QuestRepository {
         });
     }
 
-    /** Manual return confirmation. Never completes a task or downgrades a completed quest. */
+    /** Storage-level manual entry; UI must use the place-specific arrival guard. */
     public CompletableFuture<ChallengeInfo> openChallenge(String id, int version) {
+        return submit(() -> database.runInTransaction(() -> openChallengeInternal(id, version)));
+    }
+
+    public CompletableFuture<ChallengeInfo> openChallengeForPlace(com.example.tobira.QuestArrivalTarget target) {
+        if (target == null) {
+            CompletableFuture<ChallengeInfo> failed = new CompletableFuture<>();
+            failed.completeExceptionally(new ArrivalRequiredException());
+            return failed;
+        }
         return submit(() -> database.runInTransaction(() -> {
-            requireQuest(id, version);
-            requireUnlocked(id, version);
-            List<Step> challenges = dao.getSteps(id, version).stream()
-                    .filter(step -> Step.CHALLENGE.equals(step.kind))
-                    .collect(java.util.stream.Collectors.toList());
-            java.util.Set<String> completed = new java.util.HashSet<>();
-            for (CompletedStep step : dao.getCompletedSteps(id, version)) completed.add(step.stepId);
-            Progress progress = dao.getProgress(id, version);
-            Step next = null;
-            int position = 0;
-            if (progress == null || !Progress.COMPLETED.equals(progress.phase)) {
-                for (int index = 0; index < challenges.size(); index++) {
-                    if (!completed.contains(challenges.get(index).id)) {
-                        next = challenges.get(index);
-                        position = index + 1;
-                        break;
-                    }
+            if (dao.getArrival(target.questId, target.questVersion, target.placeKey) == null)
+                throw new ArrivalRequiredException();
+            return openChallengeInternal(target.questId, target.questVersion);
+        }));
+    }
+
+    public static final class ArrivalRequiredException extends IllegalStateException { }
+
+    public LiveData<QuestArrival> observeArrival(com.example.tobira.QuestArrivalTarget target) {
+        return dao.observeArrival(target.questId, target.questVersion, target.placeKey);
+    }
+
+    public CompletableFuture<Boolean> recordArrival(com.example.tobira.QuestArrivalTarget target,
+            com.example.tobira.ArrivalPolicy.Fix fix, long nowNs) {
+        if (target == null || !new com.example.tobira.ArrivalPolicy()
+                .check(target.latitude, target.longitude, fix, nowNs).arrived)
+            return CompletableFuture.completedFuture(false);
+        return submit(() -> database.runInTransaction(() -> {
+            requireQuest(target.questId, target.questVersion);
+            dao.recordArrival(new QuestArrival(target.questId, target.questVersion,
+                    target.placeKey, System.currentTimeMillis()));
+            return true;
+        }));
+    }
+
+    private ChallengeInfo openChallengeInternal(String id, int version) {
+        requireQuest(id, version);
+        requireUnlocked(id, version);
+        List<Step> challenges = dao.getSteps(id, version).stream()
+                .filter(step -> Step.CHALLENGE.equals(step.kind))
+                .collect(java.util.stream.Collectors.toList());
+        java.util.Set<String> completed = new java.util.HashSet<>();
+        for (CompletedStep step : dao.getCompletedSteps(id, version)) completed.add(step.stepId);
+        Progress progress = dao.getProgress(id, version);
+        Step next = null;
+        int position = 0;
+        if (progress == null || !Progress.COMPLETED.equals(progress.phase)) {
+            for (int index = 0; index < challenges.size(); index++) {
+                if (!completed.contains(challenges.get(index).id)) {
+                    next = challenges.get(index);
+                    position = index + 1;
+                    break;
                 }
             }
-            if (next != null) {
-                dao.putProgress(new Progress(id, version, Progress.CHALLENGE, System.currentTimeMillis()));
-            }
-            return new ChallengeInfo(dao.getQuest(id, version), next, position, challenges.size());
-        }));
+        }
+        if (next != null) {
+            dao.putProgress(new Progress(id, version, Progress.CHALLENGE, System.currentTimeMillis()));
+        }
+        return new ChallengeInfo(dao.getQuest(id, version), next, position, challenges.size());
+
     }
 
     public static final class ChallengeInfo {
@@ -343,6 +378,7 @@ public final class QuestRepository {
 
     public CompletableFuture<Void> resetProgress(String id, int version) {
         return submit(() -> {
+            dao.resetArrivals(id, version);
             dao.resetProgress(id, version);
             return null;
         });

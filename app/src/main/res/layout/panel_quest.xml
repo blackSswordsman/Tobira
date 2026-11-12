@@ -57,6 +57,14 @@
             android:lineSpacingExtra="6dp"
             android:text="@string/quest_placeholder_observations"
             android:textSize="16sp" />
+        <TextView
+            android:id="@+id/quest_arrival_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/arrival_checking"
+            android:textSize="16sp"
+            android:accessibilityLiveRegion="polite" />
         <Button
             android:id="@+id/quest_return_button"
             android:layout_width="match_parent"

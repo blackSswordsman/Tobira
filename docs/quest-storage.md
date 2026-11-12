@@ -81,6 +81,27 @@ Room provides a non-destructive auto migration from 1 to 2. Both exported schema
 remain in version control. IzumoQuestCatalogTest covers unlocking in arbitrary order,
 repeat imports, persistence and migration preserving an existing checkpoint.
 
+## Arrival access (schema 3)
+
+The foreground location tracker checks only the currently selected first stop (or destination
+when there are no stops). It does not advance the itinerary automatically. A fix must be no
+older than 30 seconds, have accuracy at most 100 metres, and its accuracy circle must fit
+inside the 500-metre radius. No background location permission or service is added.
+
+`quest_arrivals` stores arrival separately for each quest revision and exact destination
+coordinates. Room auto-migrates 2 to 3 without clearing existing progress. Arrival survives
+GPS loss, leaving the area and restarting the app. Resetting that quest also clears arrival.
+GPS arrival never marks a visit, starts a challenge, or completes a task. The user must still
+confirm visiting and returning to the car; finale prerequisites remain enforced.
+
+Design contract:
+- `ArrivalPolicy` implements the pure distance/freshness rule.
+- `QuestArrivalTracker` supplies raw foreground fixes independently of MapLibre.
+- `QuestArrivalViewModel` exposes status and `canOpenChallenge`, without layout resources.
+- `QuestArrivalUi` binds status text and button visibility; designers may replace this binding.
+- Every UI entry calls `openChallengeForPlace`, which checks saved arrival again.
+  The legacy `openChallenge` is retained for storage-level callers/tests, not UI entry.
+
 ## Schema changes and testing
 
 Schema version 1 is exported to

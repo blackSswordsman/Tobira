@@ -72,6 +72,9 @@ public class MapActivity extends AppCompatActivity {
     private final VehiclePosition vehiclePosition = new VehiclePosition();
     private Button tripButton;
     private TextView tripStatus;
+    private QuestArrivalViewModel arrivalModel;
+    private QuestArrivalTracker arrivalTracker;
+    private boolean questHasContent;
     private View questPanel;
     private boolean questPreview;
     private static final String STATE_QUEST_PREVIEW = "quest-preview";
@@ -133,6 +136,7 @@ public class MapActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<String[]> permissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                if (arrivalTracker != null) arrivalTracker.refresh();
                 if (hasLocationPermission()) {
                     startLocationUpdates();
                 } else {
@@ -207,6 +211,9 @@ public class MapActivity extends AppCompatActivity {
             centerOnDestination = true;
         }
         setContentView(R.layout.activity_map);
+        arrivalModel = new ViewModelProvider(this).get(QuestArrivalViewModel.class);
+        arrivalTracker = new QuestArrivalTracker(this, arrivalModel);
+        arrivalModel.getState().observe(this, ignored -> renderArrival());
         destinationLabel = findViewById(R.id.destination_label);
         questPanel = findViewById(R.id.quest_panel);
         findViewById(R.id.quest_preview_button).setOnClickListener(view -> {
@@ -218,12 +225,12 @@ public class MapActivity extends AppCompatActivity {
         questPanelIntro = findViewById(R.id.quest_panel_intro);
         questPanelObservations = findViewById(R.id.quest_panel_observations);
         findViewById(R.id.quest_return_button).setOnClickListener(view -> {
-            if (!trip.isActive() || getSupportFragmentManager().isStateSaved()
+            if (!trip.isActive() || !arrivalModel.canOpenChallenge() || getSupportFragmentManager().isStateSaved()
                     || getSupportFragmentManager().findFragmentByTag(QuestChallengeDialog.TAG) != null) return;
             QuestPanelViewModel.State selected = new ViewModelProvider(this)
                     .get(QuestPanelViewModel.class).getState().getValue();
             if (selected == null || selected.status != QuestPanelViewModel.Status.CONTENT) return;
-            QuestChallengeDialog.create(selected.questId, selected.questVersion)
+            QuestChallengeDialog.create(selected.questId, selected.questVersion, resolveNextPlace())
                     .showNow(getSupportFragmentManager(), QuestChallengeDialog.TAG);
         });
         selectQuestPreview();
@@ -881,8 +888,9 @@ public class MapActivity extends AppCompatActivity {
 
     private void selectQuestPreview() {
         Place point = routePlan.stops.isEmpty() ? routePlan.destination : routePlan.stops.get(0);
-        new ViewModelProvider(this).get(QuestPanelViewModel.class)
-                .selectQuest(routePlan.isQuestRoute() ? point : null);
+        Place selected = routePlan.isQuestRoute() ? point : null;
+        if (arrivalModel != null) arrivalModel.selectTarget(selected);
+        new ViewModelProvider(this).get(QuestPanelViewModel.class).selectQuest(selected);
     }
 
     private void openRouteEditor() {
@@ -941,9 +949,14 @@ public class MapActivity extends AppCompatActivity {
         if (mapView != null) mapView.setKeepScreenOn(active && resumed);
     }
 
+    private void renderArrival() {
+        QuestArrivalUi.render(findViewById(R.id.quest_arrival_status),
+                findViewById(R.id.quest_return_button), arrivalModel.getState().getValue(), questHasContent);
+    }
+
     private void renderQuestPanel(QuestPanelViewModel.State state) {
-        findViewById(R.id.quest_return_button).setEnabled(
-                state.status == QuestPanelViewModel.Status.CONTENT);
+        questHasContent = state.status == QuestPanelViewModel.Status.CONTENT;
+        renderArrival();
         if (state.status == QuestPanelViewModel.Status.CONTENT) {
             questPanelTitle.setText(state.title);
             questPanelIntro.setText(state.introduction);

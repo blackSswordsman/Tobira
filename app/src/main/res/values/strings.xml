@@ -148,4 +148,12 @@
     <string name="unset_waypoint">（未設定）</string>
     <string name="add_stop_between">この区間に経由地を追加</string>
     <string name="drag_handle_desc">ドラッグして並べ替え</string>
+    <string name="arrival_no_target">クエストに関連付けられた目的地を選んでください。</string>
+    <string name="arrival_checking">到着状況を確認しています…</string>
+    <string name="arrival_permission">到着を確認するには、地図画面で位置情報へのアクセスを許可してください。</string>
+    <string name="arrival_waiting">正確な現在地を待っています。目的地から500 m以内になると、試練を開けます。</string>
+    <string name="arrival_outside">目的地まで約%1$d m。正確な位置情報で500 m以内への到着を確認すると、試練を開けます。</string>
+    <string name="arrival_ready">到着を確認しました。場所を訪問して車に戻ったら、ボタンを押してください。</string>
+    <string name="arrival_save_error">到着情報を保存できませんでした。位置情報が更新されると再試行します。</string>
+    <string name="arrival_required">この場所から500 m以内への到着を確認してから、試練を開いてください。</string>
 </resources>
