@@ -622,7 +622,7 @@ public class MapActivity extends AppCompatActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT, 96 * dp));
             // ⑥: entire row is clickable to add the place
             row.setClickable(true);
-            row.setFocusable(true);
+            row.setFocusable(false);
             row.setOnClickListener(v -> addPlaceToRoute(place));
 
             LinearLayout info = new LinearLayout(this);
@@ -1145,6 +1145,26 @@ public class MapActivity extends AppCompatActivity {
     public void onLowMemory() {
         super.onLowMemory();
         mapView.onLowMemory();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN
+                && searchResultsBubble != null
+                && searchResultsBubble.getVisibility() == View.VISIBLE) {
+            if (!isTouchInsideView(ev, searchResultsBubble) && !isTouchInsideView(ev, placeQuery)) {
+                placeQuery.clearFocus();
+                searchResultsBubble.setVisibility(View.GONE);
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private boolean isTouchInsideView(MotionEvent ev, View v) {
+        int[] loc = new int[2];
+        v.getLocationOnScreen(loc);
+        return ev.getRawX() >= loc[0] && ev.getRawX() <= loc[0] + v.getWidth()
+                && ev.getRawY() >= loc[1] && ev.getRawY() <= loc[1] + v.getHeight();
     }
 
     @Override
