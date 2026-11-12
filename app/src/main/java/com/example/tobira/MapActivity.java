@@ -629,7 +629,7 @@ public class MapActivity extends AppCompatActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT, 96 * dp));
             // ⑥: entire row is clickable to add the place
             row.setClickable(true);
-            row.setFocusable(true);
+            row.setFocusable(false);
             row.setOnClickListener(v -> addPlaceToRoute(place));
 
             LinearLayout info = new LinearLayout(this);
@@ -728,7 +728,7 @@ public class MapActivity extends AppCompatActivity {
             mapStyle.addSource(new GeoJsonSource(ROUTE_SOURCE,
                     FeatureCollection.fromFeatures(new org.maplibre.geojson.Feature[0])));
             mapStyle.addLayerBelow(new LineLayer(ROUTE_LAYER, ROUTE_SOURCE).withProperties(
-                    lineColor("#1565C0"), lineWidth(6f), lineCap(org.maplibre.android.style.layers.Property.LINE_CAP_ROUND),
+                    lineColor("#42A5F5"), lineWidth(10f), lineCap(org.maplibre.android.style.layers.Property.LINE_CAP_ROUND),
                     lineJoin(org.maplibre.android.style.layers.Property.LINE_JOIN_ROUND)),
                     DESTINATION_LAYER);
             mapStyle.addSource(new GeoJsonSource(START_SOURCE,
@@ -1158,6 +1158,26 @@ public class MapActivity extends AppCompatActivity {
     public void onLowMemory() {
         super.onLowMemory();
         mapView.onLowMemory();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN
+                && searchResultsBubble != null
+                && searchResultsBubble.getVisibility() == View.VISIBLE) {
+            if (!isTouchInsideView(ev, searchResultsBubble) && !isTouchInsideView(ev, placeQuery)) {
+                placeQuery.clearFocus();
+                searchResultsBubble.setVisibility(View.GONE);
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private boolean isTouchInsideView(MotionEvent ev, View v) {
+        int[] loc = new int[2];
+        v.getLocationOnScreen(loc);
+        return ev.getRawX() >= loc[0] && ev.getRawX() <= loc[0] + v.getWidth()
+                && ev.getRawY() >= loc[1] && ev.getRawY() <= loc[1] + v.getHeight();
     }
 
     @Override
