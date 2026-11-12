@@ -721,7 +721,7 @@ public class MapActivity extends AppCompatActivity {
             mapStyle.addSource(new GeoJsonSource(ROUTE_SOURCE,
                     FeatureCollection.fromFeatures(new org.maplibre.geojson.Feature[0])));
             mapStyle.addLayerBelow(new LineLayer(ROUTE_LAYER, ROUTE_SOURCE).withProperties(
-                    lineColor("#1565C0"), lineWidth(6f), lineCap(org.maplibre.android.style.layers.Property.LINE_CAP_ROUND),
+                    lineColor("#42A5F5"), lineWidth(10f), lineCap(org.maplibre.android.style.layers.Property.LINE_CAP_ROUND),
                     lineJoin(org.maplibre.android.style.layers.Property.LINE_JOIN_ROUND)),
                     DESTINATION_LAYER);
             mapStyle.addSource(new GeoJsonSource(START_SOURCE,
