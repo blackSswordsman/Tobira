@@ -316,13 +316,20 @@ public class MapActivity extends AppCompatActivity {
             cancelBtn.setVisibility(View.GONE);
         });
 
-        // Overlay: quest tab → toggle quest panel
+        // Overlay: quest tab → open QuestActivity
         View tabQuest = findViewById(R.id.tab_quest);
         if (tabQuest != null) tabQuest.setOnClickListener(view -> {
-            if (!trip.isActive()) return;
-            questPreview = !questPreview;
-            renderTripControls();
+            Place nextPlace = resolveNextPlace();
+            Intent questIntent = new Intent(this, QuestActivity.class);
+            questIntent.putExtra(QuestActivity.EXTRA_PLAN, routePlan.toBundle());
+            if (nextPlace != null) questIntent.putExtra(QuestActivity.EXTRA_NEXT_PLACE, nextPlace.toBundle());
+            startActivity(questIntent);
         });
+
+        // Overlay: user tab → open UserActivity
+        View tabUser = findViewById(R.id.tab_user);
+        if (tabUser != null) tabUser.setOnClickListener(view ->
+                startActivity(new Intent(this, UserActivity.class)));
 
         // Overlay: search field + results bubble
         searchResultsBubble = findViewById(R.id.search_results_bubble);
@@ -864,6 +871,12 @@ public class MapActivity extends AppCompatActivity {
             map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), padding));
             fittedRouteId = state.requestId;
         }
+    }
+
+    /** Returns the next stop on the route after the current position: first stop if any, else destination. */
+    private Place resolveNextPlace() {
+        if (!routePlan.stops.isEmpty()) return routePlan.stops.get(0);
+        return routePlan.destination;
     }
 
     private void selectQuestPreview() {
