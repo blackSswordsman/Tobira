@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/quest_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000"
+    android:fitsSystemWindows="true">
+
+    <!-- Right half: navigation map rendered behind the transparent right overlay.
+         Placed in the same LinearLayout weight system to occupy exactly 50%. -->
+
+
+    <!-- 50/50 horizontal split -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:weightSum="2">
+
+        <!-- Left half: menu + quest content -->
+        <FrameLayout
+            android:id="@+id/quest_left_area"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="#FF000000">
+
+            <!-- Same menu geometry as activity_navigation.xml -->
+            <FrameLayout
+                android:id="@+id/menu_area"
+                android:layout_width="140dp"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:layout_width="86dp"
+                    android:layout_height="86dp"
+                    android:layout_gravity="top|start"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="10dp"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="TOBIRA"
+                    android:scaleType="fitStart"
+                    android:src="@drawable/tobira_logo_fordark" />
+
+                <LinearLayout
+                    android:id="@+id/menu_bar"
+                    android:layout_width="112dp"
+                    android:layout_height="360dp"
+                    android:layout_gravity="bottom|start"
+                    android:background="@drawable/bg_menubar"
+                    android:gravity="bottom"
+                    android:orientation="vertical"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="22dp"
+                    android:paddingBottom="16dp">
+
+                    <!-- Route tab: tap to return to map/route screen -->
+                    <FrameLayout
+                        android:id="@+id/tab_route"
+                        android:layout_width="match_parent"
+                        android:layout_height="82dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="42dp"
+                            android:layout_height="42dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="ルート"
+                            android:src="@drawable/ico_route" />
+                    </FrameLayout>
+
+                    <!-- Quest tab: selected on this screen -->
+                    <FrameLayout
+                        android:id="@+id/tab_quest"
+                        android:layout_width="match_parent"
+                        android:layout_height="82dp"
+                        android:background="@drawable/bg_menu_selected_gradient"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="42dp"
+                            android:layout_height="42dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="クエスト"
+                            android:src="@drawable/ico_quest" />
+                    </FrameLayout>
+
+                    <ImageButton
+                        android:id="@+id/tab_user"
+                        android:layout_width="match_parent"
+                        android:layout_height="82dp"
+                        android:background="@android:color/transparent"
+                        android:contentDescription="ユーザー"
+                        android:padding="22dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ico_user" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Quest content area: starts to the right of the menu -->
+            <LinearLayout
+                android:id="@+id/quest_content"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginStart="140dp"
+                android:orientation="vertical"
+                android:paddingStart="14dp"
+                android:paddingTop="22dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="18dp">
+
+                <!-- Quest title card: shows next waypoint name -->
+                <LinearLayout
+                    android:id="@+id/quest_summary_panel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_quest_panel"
+                    android:orientation="vertical"
+                    android:paddingStart="30dp"
+                    android:paddingTop="24dp"
+                    android:paddingEnd="24dp"
+                    android:paddingBottom="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Quest"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <!-- Next destination on the route -->
+                    <TextView
+                        android:id="@+id/quest_place_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:text="—"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="2dp"
+                        android:layout_marginTop="10dp"
+                        android:background="#BFFFFFFF" />
+
+                    <!-- Quest description from QuestPanelViewModel -->
+                    <TextView
+                        android:id="@+id/quest_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:lineSpacingExtra="3dp"
+                        android:text=""
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="21sp" />
+                </LinearLayout>
+
+                <!-- Observations / story section -->
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_weight="1"
+                    android:fillViewport="true"
+                    android:overScrollMode="never"
+                    android:scrollbars="vertical">
+
+                    <TextView
+                        android:id="@+id/quest_observations"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingExtra="4dp"
+                        android:paddingStart="22dp"
+                        android:paddingEnd="8dp"
+                        android:text=""
+                        android:textColor="#CCFFFFFF"
+                        android:textSize="18sp" />
+                </ScrollView>
+
+                <!-- Return-to-car button: opens QuestChallengeDialog -->
+                <Button
+                    android:id="@+id/quest_return_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:enabled="false"
+                    android:minHeight="64dp"
+                    android:text="@string/quest_returned_to_car"
+                    android:textSize="18sp" />
+
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Right half: navigation map -->
+        <FrameLayout
+            android:id="@+id/navigation_map_area"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <org.maplibre.android.maps.MapView
+                android:id="@+id/quest_map_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <ImageButton
+                android:id="@+id/current_location"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_current_location_button"
+                android:contentDescription="現在地"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_navigation" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

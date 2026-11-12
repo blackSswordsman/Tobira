@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/user_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000"
+    android:fitsSystemWindows="true">
+
+    <!-- Left: menu/logo — same geometry as other screens -->
+    <FrameLayout
+        android:id="@+id/menu_area"
+        android:layout_width="140dp"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:layout_width="86dp"
+            android:layout_height="86dp"
+            android:layout_gravity="top|start"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="10dp"
+            android:adjustViewBounds="true"
+            android:contentDescription="TOBIRA"
+            android:scaleType="fitStart"
+            android:src="@drawable/tobira_logo_fordark" />
+
+        <LinearLayout
+            android:id="@+id/menu_bar"
+            android:layout_width="112dp"
+            android:layout_height="360dp"
+            android:layout_gravity="bottom|start"
+            android:background="@drawable/bg_menubar"
+            android:gravity="bottom"
+            android:orientation="vertical"
+            android:paddingStart="0dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="16dp">
+
+            <FrameLayout
+                android:id="@+id/tab_route"
+                android:layout_width="match_parent"
+                android:layout_height="82dp"
+                android:clickable="true"
+                android:focusable="true">
+                <ImageView
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="ルート"
+                    android:src="@drawable/ico_route" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/tab_quest"
+                android:layout_width="match_parent"
+                android:layout_height="82dp"
+                android:clickable="true"
+                android:focusable="true">
+                <ImageView
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="クエスト"
+                    android:src="@drawable/ico_quest" />
+            </FrameLayout>
+
+            <!-- User tab: selected on this screen -->
+            <FrameLayout
+                android:id="@+id/tab_user"
+                android:layout_width="match_parent"
+                android:layout_height="82dp"
+                android:background="@drawable/bg_menu_selected_gradient"
+                android:clickable="true"
+                android:focusable="true">
+                <ImageView
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="ユーザー"
+                    android:src="@drawable/ico_user" />
+            </FrameLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Main user information area (starts to the right of menu) -->
+    <LinearLayout
+        android:id="@+id/user_information_area"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="152dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginEnd="44dp"
+        android:layout_marginBottom="30dp"
+        android:orientation="horizontal"
+        android:weightSum="10">
+
+        <!-- Left column: profile / stats / badges (weight 6) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="6"
+            android:orientation="vertical"
+            android:paddingEnd="34dp">
+
+            <!-- Level circle + editable name + EXP bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="132dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <FrameLayout
+                    android:layout_width="112dp"
+                    android:layout_height="112dp"
+                    android:background="@drawable/bg_level_circle"
+                    android:padding="9dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Lv."
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="22sp" />
+                        <TextView
+                            android:id="@+id/user_level"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:text="1"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="34sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="18dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical">
+
+                    <!-- Tap to edit user name -->
+                    <EditText
+                        android:id="@+id/user_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="58dp"
+                        android:background="@android:color/transparent"
+                        android:contentDescription="ユーザー名"
+                        android:hint="ユーザー名をタップして入力"
+                        android:imeOptions="actionDone"
+                        android:inputType="textPersonName"
+                        android:maxLength="20"
+                        android:padding="0dp"
+                        android:selectAllOnFocus="true"
+                        android:singleLine="true"
+                        android:textColor="#FFFFFFFF"
+                        android:textColorHint="#88FFFFFF"
+                        android:textSize="34sp"
+                        android:textStyle="bold" />
+
+                    <!-- EXP progress bar -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="20dp">
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="3dp"
+                            android:layout_gravity="top"
+                            android:background="#FF8A8A8A" />
+                        <View
+                            android:id="@+id/exp_progress"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:layout_gravity="top|start"
+                            android:background="#FF43CBC7" />
+                        <TextView
+                            android:id="@+id/exp_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:text="0 / 1000 exp"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="13sp" />
+                    </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Stats section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="242dp"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                android:paddingStart="18dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="訪問都道府県数"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="20sp" />
+                    <TextView
+                        android:id="@+id/visited_prefectures"
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:text="0"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="36sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="クエストクリア数"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="20sp" />
+                    <TextView
+                        android:id="@+id/quest_clear_count"
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:text="0"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="36sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="総移動距離"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="20sp" />
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="bottom"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:id="@+id/total_distance"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="36sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="km"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Badge panel -->
+            <LinearLayout
+                android:id="@+id/badge_panel"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginTop="16dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_badge_panel"
+                android:orientation="vertical"
+                android:padding="20dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="獲得バッジ"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="20sp" />
+                <FrameLayout
+                    android:id="@+id/badge_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Right column: Ranking panel (weight 4) -->
+        <FrameLayout
+            android:id="@+id/ranking_glow_outer"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="4"
+            android:background="#18FFFFFF"
+            android:padding="10dp">
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#38FFFFFF"
+                android:padding="5dp">
+                <LinearLayout
+                    android:id="@+id/ranking_panel"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#FF101010"
+                    android:orientation="vertical"
+                    android:padding="28dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="46dp"
+                            android:layout_height="46dp"
+                            android:gravity="center"
+                            android:text="♛"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="34sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Ranking"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="23sp" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/ranking_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical" />
+                </LinearLayout>
+            </FrameLayout>
+        </FrameLayout>
+
+    </LinearLayout>
+</FrameLayout>
