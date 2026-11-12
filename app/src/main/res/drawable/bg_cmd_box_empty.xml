@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Command box not done yet (tobira_UI.pptx slide 2): one-corner-cut outline, theme accent3. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="80dp"
+    android:viewportWidth="80"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M2,2 H64.7 L78,15.3 V98 H2 Z"
+        android:strokeColor="#017E73"
+        android:strokeWidth="3" />
+</vector>

@@ -363,6 +363,19 @@ public class VehicleFlagManager {
         return true;
     }
 
+    /**
+     * Number of occupied seats, or -1 if seat occupancy is not available.
+     * 着座している席の数（取得できない場合は -1）。
+     */
+    public int getOccupiedSeatCount() {
+        if (occupiedBySeat.isEmpty()) return -1;
+        int count = 0;
+        for (Boolean occupied : occupiedBySeat.values()) {
+            if (Boolean.TRUE.equals(occupied)) count++;
+        }
+        return count;
+    }
+
     /** All latest values as "NAME [area 0x..]" → text, sorted. / 全最新値（名前順）。 */
     public Map<String, String> getAllValues() {
         Map<String, String> out = new TreeMap<>();

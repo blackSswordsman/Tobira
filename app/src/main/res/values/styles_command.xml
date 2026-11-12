@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Box of one step in the quest screen's "Enter Your Command" section. -->
+    <style name="CommandBox">
+        <item name="android:layout_width">64dp</item>
+        <item name="android:layout_height">80dp</item>
+        <item name="android:layout_gravity">bottom|start</item>
+        <item name="android:background">@drawable/bg_cmd_box_empty</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+        <item name="android:textSize">30sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

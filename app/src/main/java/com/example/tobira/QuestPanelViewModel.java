@@ -28,10 +28,16 @@ public final class QuestPanelViewModel extends AndroidViewModel {
         public final int questVersion;
         public final String title;
         public final String introduction;
+        /** Text of the first CHALLENGE step: the quest's goal. Empty when there is none. */
+        public final String goal;
+        /** conditionJson of that challenge step (the "Enter Your Command" steps), or null. */
+        public final String commands;
         public final List<String> observations;
 
-        private State(Status status, String title, String introduction, List<String> observations,
-                      String questId, int questVersion) {
+        private State(Status status, String title, String introduction, String goal, String commands,
+                      List<String> observations, String questId, int questVersion) {
+            this.goal = goal;
+            this.commands = commands;
             this.questId = questId;
             this.questVersion = questVersion;
             this.status = status;
@@ -41,20 +47,38 @@ public final class QuestPanelViewModel extends AndroidViewModel {
         }
     }
 
-    private static final String DEMO_QUEST_ID = "debug-demo-quest";
+    /** A searched place within this distance of a quest place shows that quest. */
+    private static final float MATCH_RADIUS_METERS = 300f;
     private final MediatorLiveData<State> state = new MediatorLiveData<>();
     private final QuestRepository repository;
     private final Handler main = new Handler(Looper.getMainLooper());
     private int generation;
+    private int selection;
     private String selectedRevision;
-    private String desiredQuestId = DEMO_QUEST_ID;
+    /** Quest to show; null means the place has no quest (shows EMPTY, never a demo quest). */
+    private String desiredQuestId;
     private int desiredVersion;
     private List<Quest> lastCatalog = Collections.emptyList();
 
     public void selectQuest(Place point) {
-        String id = point == null || point.questId == null ? DEMO_QUEST_ID : point.questId;
-        int version = point == null ? 0 : point.questVersion;
-        if (id.equals(desiredQuestId) && version == desiredVersion) return;
+        int token = ++selection;
+        if (point == null) {
+            applySelection(null, 0);
+        } else if (point.questId != null) {
+            applySelection(point.questId, point.questVersion);
+        } else {
+            // Place from map search: use the quest of a quest place nearby, if any.
+            repository.findQuestNear(point.latitude, point.longitude, MATCH_RADIUS_METERS)
+                    .whenComplete((match, error) -> main.post(() -> {
+                        if (selection != token) return;
+                        if (match == null) applySelection(null, 0);
+                        else applySelection(match.questId, match.questVersion);
+                    }));
+        }
+    }
+
+    private void applySelection(String id, int version) {
+        if (java.util.Objects.equals(id, desiredQuestId) && version == desiredVersion) return;
         desiredQuestId = id;
         desiredVersion = version;
         selectedRevision = null;
@@ -77,7 +101,7 @@ public final class QuestPanelViewModel extends AndroidViewModel {
     private void loadDemo(List<Quest> catalog) {
         lastCatalog = catalog == null ? Collections.emptyList() : catalog;
         Quest selected = null;
-        if (catalog != null) {
+        if (catalog != null && desiredQuestId != null) {
             for (Quest quest : catalog) {
                 if (desiredQuestId.equals(quest.id)
                         && (desiredVersion == 0 || desiredVersion == quest.version)
@@ -104,15 +128,22 @@ public final class QuestPanelViewModel extends AndroidViewModel {
                 return;
             }
             List<String> observations = new ArrayList<>();
+            String goal = "";
+            String commands = null;
             for (Step step : steps) {
                 if (Step.OBSERVATION.equals(step.kind)) observations.add(step.text);
+                else if (goal.isEmpty() && Step.CHALLENGE.equals(step.kind)) {
+                    goal = step.text;
+                    commands = step.conditionJson;
+                }
             }
-            state.setValue(new State(Status.CONTENT, quest.title, quest.introduction, observations, quest.id, quest.version));
+            state.setValue(new State(Status.CONTENT, quest.title, quest.introduction, goal, commands,
+                    observations, quest.id, quest.version));
         }));
     }
 
     private static State message(Status status) {
-        return new State(status, "", "", Collections.emptyList(), null, 0);
+        return new State(status, "", "", "", null, Collections.emptyList(), null, 0);
     }
 
     @Override

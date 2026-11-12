@@ -128,6 +128,28 @@ public final class QuestRepository {
         }
     }
 
+    /**
+     * Finds the quest whose place is nearest to the given point, within {@code radiusMeters}.
+     * Used for places picked from map search, which carry no quest link. Completes with null if none.
+     */
+    public CompletableFuture<QuestDao.QuestLocation> findQuestNear(double latitude, double longitude,
+                                                                  float radiusMeters) {
+        return submit(() -> {
+            QuestDao.QuestLocation nearest = null;
+            float nearestDistance = Float.MAX_VALUE;
+            float[] distance = new float[1];
+            for (QuestDao.QuestLocation location : dao.getQuestLocations()) {
+                android.location.Location.distanceBetween(latitude, longitude,
+                        location.latitude, location.longitude, distance);
+                if (distance[0] <= radiusMeters && distance[0] < nearestDistance) {
+                    nearest = location;
+                    nearestDistance = distance[0];
+                }
+            }
+            return nearest;
+        });
+    }
+
     /** Adds curated locations to existing drafts, including installations created before locations existed. */
     public CompletableFuture<Void> linkRoutePlaces(List<Place> places, List<PlaceQuest> links) {
         return submit(() -> database.runInTransaction(() -> {

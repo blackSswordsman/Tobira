@@ -134,7 +134,6 @@ public final class RouteCatalogActivity extends AppCompatActivity {
             for (Step step : stop.steps) {
                 if (Step.OBSERVATION.equals(step.kind)) text.append("\n\n• ").append(step.text);
             }
-            text.append("\n\n").append(getString(R.string.quest_content_pending));
         }
         new AlertDialog.Builder(this).setTitle(stop.quest.title).setMessage(text)
                 .setPositiveButton(R.string.quest_close, null).show();

@@ -128,6 +128,10 @@ public class MapActivity extends AppCompatActivity {
     private boolean resumed;
     private boolean centerOnNextFix = true;
     private boolean receivedFix;
+    /** GO was pressed before a fresh GPS fix arrived; start the trip when one does. */
+    private boolean startTripOnFix;
+    /** GO was pressed on a quest route before the route was built; start the trip once it is. */
+    private boolean startTripWhenRouteReady;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable locationTimeout = () -> {
         if (!receivedFix) status.setText(R.string.location_waiting);
@@ -162,6 +166,10 @@ public class MapActivity extends AppCompatActivity {
             map.getLocationComponent().forceLocationUpdate(vehicle);
             applyTripMode(false);
             status.setText(hasFinePermission() ? R.string.location_ready : R.string.location_approximate);
+            if (startTripOnFix && !trip.isActive()) {
+                startTripOnFix = false;
+                startTrip();
+            }
             if (centerOnNextFix && !trip.isActive()) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                         new LatLng(location.getLatitude(), location.getLongitude()),
@@ -255,6 +263,14 @@ public class MapActivity extends AppCompatActivity {
             renderRoute();
             // ⑧: update GO button label based on route state
             updateGoButton(state.status);
+            // One GO press on a quest route: once the route is built, start the trip (opens the quest screen).
+            if (startTripWhenRouteReady && state.status != RouteViewModel.Status.LOADING
+                    && state.status != RouteViewModel.Status.IDLE) {
+                startTripWhenRouteReady = false;
+                if (state.status == RouteViewModel.Status.READY && !trip.isActive()) {
+                    handler.post(this::startTrip);
+                }
+            }
         });
         clearDestinationButton = findViewById(R.id.clear_destination_button);
         findViewById(R.id.search_places_button).setOnClickListener(view -> openRouteEditor());
@@ -297,6 +313,7 @@ public class MapActivity extends AppCompatActivity {
             if (rs.status == RouteViewModel.Status.READY) {
                 startTrip();
             } else {
+                startTripWhenRouteReady = routePlan.isQuestRoute();
                 buildRoute();
             }
         });
@@ -325,13 +342,7 @@ public class MapActivity extends AppCompatActivity {
 
         // Overlay: quest tab → open QuestActivity
         View tabQuest = findViewById(R.id.tab_quest);
-        if (tabQuest != null) tabQuest.setOnClickListener(view -> {
-            Place nextPlace = resolveNextPlace();
-            Intent questIntent = new Intent(this, QuestActivity.class);
-            questIntent.putExtra(QuestActivity.EXTRA_PLAN, routePlan.toBundle());
-            if (nextPlace != null) questIntent.putExtra(QuestActivity.EXTRA_NEXT_PLACE, nextPlace.toBundle());
-            startActivity(questIntent);
-        });
+        if (tabQuest != null) tabQuest.setOnClickListener(view -> openQuestScreen());
 
         // Overlay: user tab → open UserActivity
         View tabUser = findViewById(R.id.tab_user);
@@ -383,8 +394,44 @@ public class MapActivity extends AppCompatActivity {
         });
         mapView.getMapAsync(readyMap -> {
             map = readyMap;
+            updateMapPadding();
             loadMap();
         });
+        // Keep the map's visible centre to the right of the route panel and below the search bar.
+        View.OnLayoutChangeListener paddingListener = (view, left, top, right, bottom,
+                                                       oldLeft, oldTop, oldRight, oldBottom) -> updateMapPadding();
+        mapView.addOnLayoutChangeListener(paddingListener);
+        View routePanel = findViewById(R.id.route_editor_panel);
+        if (routePanel != null) routePanel.addOnLayoutChangeListener(paddingListener);
+    }
+
+    /**
+     * Sets the map padding to the area covered by the route panel (left) and search bar (top), so
+     * route fitting, location centring and trip following all use the visible right-hand area.
+     */
+    private void updateMapPadding() {
+        if (map == null || mapView == null || mapView.getWidth() == 0) return;
+        int[] mapOrigin = new int[2];
+        mapView.getLocationOnScreen(mapOrigin);
+        int left = 0;
+        int top = 0;
+        View routePanel = findViewById(R.id.route_editor_panel);
+        if (routePanel != null && routePanel.isShown()) {
+            int[] origin = new int[2];
+            routePanel.getLocationOnScreen(origin);
+            left = Math.max(0, origin[0] + routePanel.getWidth() - mapOrigin[0]);
+        }
+        View searchBox = findViewById(R.id.search_box);
+        if (searchBox != null && searchBox.isShown()) {
+            int[] origin = new int[2];
+            searchBox.getLocationOnScreen(origin);
+            top = Math.max(0, origin[1] + searchBox.getHeight() - mapOrigin[1]);
+        }
+        if (left >= mapView.getWidth() || top >= mapView.getHeight()) return;
+        double[] current = map.getCameraPosition().padding;
+        if (current != null && current.length == 4 && current[0] == left && current[1] == top
+                && current[2] == 0 && current[3] == 0) return;
+        map.moveCamera(CameraUpdateFactory.paddingTo(left, top, 0, 0));
     }
 
     // ── Overlay: waypoint list ───────────────────────────────────────────────
@@ -875,7 +922,13 @@ public class MapActivity extends AppCompatActivity {
                 bounds.include(new LatLng(point.latitude(), point.longitude()));
             }
             int padding = (int) (32 * getResources().getDisplayMetrics().density);
-            map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), padding));
+            // Fit the route inside the visible area (right of the panel, below the search bar).
+            updateMapPadding();
+            double[] covered = map.getCameraPosition().padding;
+            int coveredLeft = covered != null && covered.length == 4 ? (int) covered[0] : 0;
+            int coveredTop = covered != null && covered.length == 4 ? (int) covered[1] : 0;
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(),
+                    coveredLeft + padding, coveredTop + padding, padding, padding));
             fittedRouteId = state.requestId;
         }
     }
@@ -890,7 +943,8 @@ public class MapActivity extends AppCompatActivity {
         Place point = routePlan.stops.isEmpty() ? routePlan.destination : routePlan.stops.get(0);
         Place selected = routePlan.isQuestRoute() ? point : null;
         if (arrivalModel != null) arrivalModel.selectTarget(selected);
-        new ViewModelProvider(this).get(QuestPanelViewModel.class).selectQuest(selected);
+        // Preview also matches searched places to a nearby quest place (see QuestPanelViewModel).
+        new ViewModelProvider(this).get(QuestPanelViewModel.class).selectQuest(point);
     }
 
     private void openRouteEditor() {
@@ -902,9 +956,11 @@ public class MapActivity extends AppCompatActivity {
         if (routeViewModel.currentState().status != RouteViewModel.Status.READY) return;
         if (!hasFreshLocation()) {
             status.setText(R.string.route_need_location);
+            startTripOnFix = true;
             requestLocation();
             return;
         }
+        startTripOnFix = false;
         trip.start(true, true);
         questPreview = false;
         centerOnNextFix = false;
@@ -913,9 +969,23 @@ public class MapActivity extends AppCompatActivity {
         applyTripMode(true);
         renderTripControls();
         updateGoButton(routeViewModel.currentState().status); // ㉔: hide GO
+        // GO on a quest route goes straight to the quest screen for the first place.
+        if (routePlan.isQuestRoute()) openQuestScreen();
+    }
+
+    /** Opens the quest screen for the next place on the route (route line is shown there too). */
+    private void openQuestScreen() {
+        Place nextPlace = resolveNextPlace();
+        Intent questIntent = new Intent(this, QuestActivity.class);
+        questIntent.putExtra(QuestActivity.EXTRA_PLAN, routePlan.toBundle());
+        if (nextPlace != null) questIntent.putExtra(QuestActivity.EXTRA_NEXT_PLACE, nextPlace.toBundle());
+        questIntent.putExtra(QuestActivity.EXTRA_NAVIGATING, trip.isActive());
+        startActivity(questIntent);
     }
 
     private void endTrip() {
+        startTripOnFix = false;
+        startTripWhenRouteReady = false;
         trip.stop();
         questPreview = false;
         applyTripMode(false);
@@ -967,12 +1037,16 @@ public class MapActivity extends AppCompatActivity {
             }
             questPanelObservations.setText(observations.length() == 0
                     ? getString(R.string.quest_placeholder_observations) : observations.toString());
+        } else if (state.status == QuestPanelViewModel.Status.EMPTY) {
+            questPanelTitle.setText(R.string.quest_none);
+            questPanelIntro.setText("");
+            questPanelObservations.setText("");
         } else {
             questPanelTitle.setText(state.status == QuestPanelViewModel.Status.LOADING
                     ? R.string.quest_panel_loading : R.string.quest_placeholder_title);
             questPanelIntro.setText(state.status == QuestPanelViewModel.Status.ERROR
-                    ? R.string.quest_panel_error : R.string.quest_placeholder_intro);
-            questPanelObservations.setText(R.string.quest_placeholder_observations);
+                    ? R.string.catalog_error : R.string.quest_placeholder_intro);
+            questPanelObservations.setText("");
         }
     }
 

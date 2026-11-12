@@ -89,7 +89,10 @@ public class RouteEditorActivity extends AppCompatActivity {
                 ? getString(R.string.choose_finish) : plan.destination.address);
         findViewById(R.id.apply_route).setEnabled(plan.isComplete());
         findViewById(R.id.add_stop).setEnabled(plan.stops.size() < RoutePlan.MAX_STOPS);
-        findViewById(R.id.select_finish).setEnabled(!plan.isQuestRoute());
+        // Quest routes have a fixed destination (the final lighthouse), so the 目的地 section is hidden.
+        int finishVisibility = plan.isQuestRoute() ? android.view.View.GONE : android.view.View.VISIBLE;
+        findViewById(R.id.route_finish_label).setVisibility(finishVisibility);
+        findViewById(R.id.select_finish).setVisibility(finishVisibility);
         findViewById(R.id.add_stop).setVisibility(plan.isQuestRoute()
                 ? android.view.View.GONE : android.view.View.VISIBLE);
         stopRows.removeAllViews();
@@ -102,7 +105,9 @@ public class RouteEditorActivity extends AppCompatActivity {
             row.addView(place, new LinearLayout.LayoutParams(0,
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             place.setOnClickListener(view -> search(position));
-            place.setEnabled(!plan.isQuestRoute());
+            // Quest-route places are fixed: readable text, but not tappable.
+            place.setClickable(!plan.isQuestRoute());
+            place.setTextColor(0xFF1A1A1A);
             Button up = button(getString(R.string.move_up));
             up.setEnabled(index > 0);
             up.setOnClickListener(view -> {

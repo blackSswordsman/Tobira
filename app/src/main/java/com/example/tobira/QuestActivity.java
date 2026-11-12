@@ -40,9 +40,15 @@ public class QuestActivity extends AppCompatActivity {
 
     public static final String EXTRA_PLAN = "quest_route_plan";
     public static final String EXTRA_NEXT_PLACE = "quest_next_place";
+    /** True when opened during a trip (GO pressed): the map follows the car like navigation. */
+    public static final String EXTRA_NAVIGATING = "quest_navigating";
+    private static final String STOPS_SOURCE = "quest-stops-source";
+    private static final String DESTINATION_SOURCE = "quest-destination-source";
 
     private static final String ROUTE_SOURCE = "quest-route-source";
     private static final String ROUTE_LAYER  = "quest-route-layer";
+    /** Pause on the "封印完了" message before opening the next place's quest. */
+    private static final long NEXT_QUEST_DELAY_MS = 2500;
 
     private MapView mapView;
     private MapLibreMap map;
@@ -56,6 +62,8 @@ public class QuestActivity extends AppCompatActivity {
     private Place nextPlace;
     private QuestArrivalViewModel arrivalModel;
     private boolean questHasContent;
+    private QuestCommandPanel commandPanel;
+    private boolean navigating;
 
     private final LocationListener locationListener = new LocationListener() {
         @Override
@@ -77,6 +85,7 @@ public class QuestActivity extends AppCompatActivity {
         MapLibre.getInstance(this);
 
         routePlan = RoutePlan.fromBundle(getIntent().getBundleExtra(EXTRA_PLAN));
+        navigating = getIntent().getBooleanExtra(EXTRA_NAVIGATING, false);
         nextPlace  = Place.fromBundle(getIntent().getBundleExtra(EXTRA_NEXT_PLACE));
 
         setContentView(R.layout.activity_quest);
@@ -90,13 +99,22 @@ public class QuestActivity extends AppCompatActivity {
         placeNameView.setText(nextPlace != null ? nextPlace.name : "—");
 
         QuestPanelViewModel questVm = new ViewModelProvider(this).get(QuestPanelViewModel.class);
+        commandPanel = new QuestCommandPanel(this, () -> onQuestCommandsDone(questVm.getState().getValue()));
         questVm.selectQuest(nextPlace);
         questVm.getState().observe(this, state -> {
             TextView desc = findViewById(R.id.quest_description);
             TextView obs  = findViewById(R.id.quest_observations);
+            TextView enemyStory = findViewById(R.id.enemy_story);
 
             if (state.status == QuestPanelViewModel.Status.CONTENT) {
-                desc.setText(state.introduction);
+                // Quest card = goal (first challenge); Enemy = enemy and story (introduction).
+                if (state.goal.isEmpty()) {
+                    desc.setText(compactParagraphs(state.introduction));
+                    enemyStory.setText("");
+                } else {
+                    desc.setText(compactParagraphs(state.goal));
+                    enemyStory.setText(compactParagraphs(state.introduction));
+                }
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < state.observations.size(); i++) {
                     if (i > 0) sb.append("\n\n");
@@ -104,12 +122,17 @@ public class QuestActivity extends AppCompatActivity {
                 }
                 obs.setText(sb.length() == 0
                         ? getString(R.string.quest_placeholder_observations) : sb.toString());
+                commandPanel.setCommands(state.commands);
                 questHasContent = true;
                 renderArrival();
             } else {
                 desc.setText(state.status == QuestPanelViewModel.Status.LOADING
-                        ? R.string.quest_panel_loading : R.string.quest_placeholder_intro);
+                        ? R.string.quest_panel_loading
+                        : state.status == QuestPanelViewModel.Status.ERROR
+                        ? R.string.catalog_error : R.string.quest_none);
+                enemyStory.setText("");
                 obs.setText(R.string.quest_placeholder_observations);
+                commandPanel.setCommands(null);
                 questHasContent = false;
                 renderArrival();
             }
@@ -138,7 +161,9 @@ public class QuestActivity extends AppCompatActivity {
         // ── Navigation map (right half) ──────────────────────────────────────
         ImageButton locateBtn = findViewById(R.id.current_location);
         locateBtn.setOnClickListener(v -> {
-            if (currentLocation != null && map != null) {
+            if (navigating) {
+                startNavigationCamera();
+            } else if (currentLocation != null && map != null) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                         new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), 15));
             }
@@ -161,18 +186,34 @@ public class QuestActivity extends AppCompatActivity {
                         lineCap(org.maplibre.android.style.layers.Property.LINE_CAP_ROUND),
                         lineJoin(org.maplibre.android.style.layers.Property.LINE_JOIN_ROUND)));
 
-                // Draw route from parent RouteViewModel if available
-                RouteViewModel routeVm = new ViewModelProvider(this).get(RouteViewModel.class);
-                RouteViewModel.State rs = routeVm.currentState();
-                if (rs.status == RouteViewModel.Status.READY && rs.route != null) {
+                // Draw the route built on the map screen (shared by RouteViewModel).
+                DrivingRoute route = RouteViewModel.lastReadyRoute();
+                if (route != null) {
                     GeoJsonSource src = mapStyle.getSourceAs(ROUTE_SOURCE);
-                    if (src != null) src.setGeoJson(rs.route.geometry());
+                    if (src != null) src.setGeoJson(route.geometry());
                 }
+                addPlaceMarkers();
 
                 activateLocation();
 
-                // Center on next waypoint
-                if (nextPlace != null) {
+                // During a trip, follow the car (navigation). Otherwise show the whole route
+                // (and the next waypoint); without a route, centre on the waypoint.
+                if (navigating) {
+                    startNavigationCamera();
+                } else if (route != null && !route.points.isEmpty()) {
+                    org.maplibre.android.geometry.LatLngBounds.Builder bounds =
+                            new org.maplibre.android.geometry.LatLngBounds.Builder();
+                    for (org.maplibre.geojson.Point point : route.points) {
+                        bounds.include(new LatLng(point.latitude(), point.longitude()));
+                    }
+                    if (nextPlace != null) bounds.include(new LatLng(nextPlace.latitude, nextPlace.longitude));
+                    int padding = (int) (32 * getResources().getDisplayMetrics().density);
+                    mapView.post(() -> {
+                        if (map != null && !isDestroyed()) {
+                            map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), padding));
+                        }
+                    });
+                } else if (nextPlace != null) {
                     map.moveCamera(CameraUpdateFactory.newLatLngZoom(
                             new LatLng(nextPlace.latitude, nextPlace.longitude), 13));
                 }
@@ -180,9 +221,111 @@ public class QuestActivity extends AppCompatActivity {
         });
     }
 
+    /** Orange dots for the route's stops and a red dot for its destination (same as the map screen). */
+    private void addPlaceMarkers() {
+        if (mapStyle == null || routePlan == null) return;
+        java.util.List<org.maplibre.geojson.Feature> stops = new java.util.ArrayList<>();
+        for (Place stop : routePlan.stops) {
+            stops.add(org.maplibre.geojson.Feature.fromGeometry(
+                    org.maplibre.geojson.Point.fromLngLat(stop.longitude, stop.latitude)));
+        }
+        mapStyle.addSource(new GeoJsonSource(STOPS_SOURCE, FeatureCollection.fromFeatures(stops)));
+        mapStyle.addLayer(new org.maplibre.android.style.layers.CircleLayer("quest-stop-points", STOPS_SOURCE)
+                .withProperties(circleColor("#EF6C00"), circleRadius(8f),
+                        circleStrokeColor("#FFFFFF"), circleStrokeWidth(2f)));
+        java.util.List<org.maplibre.geojson.Feature> destination = new java.util.ArrayList<>();
+        if (routePlan.destination != null) {
+            destination.add(org.maplibre.geojson.Feature.fromGeometry(org.maplibre.geojson.Point.fromLngLat(
+                    routePlan.destination.longitude, routePlan.destination.latitude)));
+        }
+        mapStyle.addSource(new GeoJsonSource(DESTINATION_SOURCE, FeatureCollection.fromFeatures(destination)));
+        mapStyle.addLayer(new org.maplibre.android.style.layers.CircleLayer("quest-destination", DESTINATION_SOURCE)
+                .withProperties(circleColor("#D32F2F"), circleRadius(10f),
+                        circleStrokeColor("#FFFFFF"), circleStrokeWidth(3f)));
+    }
+
+    /** Navigation view: follow the car, zoomed in and tilted (same as the map screen's trip mode). */
+    @SuppressLint("MissingPermission")
+    private void startNavigationCamera() {
+        if (map == null || mapStyle == null
+                || !map.getLocationComponent().isLocationComponentActivated()) return;
+        org.maplibre.android.location.LocationComponent component = map.getLocationComponent();
+        if (component.getLastKnownLocation() == null && hasLocationPermission()) {
+            Location last = null;
+            for (String provider : locationManager.getProviders(true)) {
+                Location candidate = locationManager.getLastKnownLocation(provider);
+                if (candidate != null && (last == null || candidate.getTime() > last.getTime())) last = candidate;
+            }
+            if (last != null) {
+                currentLocation = last;
+                component.forceLocationUpdate(last);
+            }
+        }
+        component.setRenderMode(RenderMode.GPS);
+        // Zoom 15 (one step wider than the full-width map screen) so the half-width map shows the
+        // road ahead and the next stop's marker.
+        component.setCameraMode(CameraMode.TRACKING_GPS, 750L, 15.0, null, 40.0, null);
+    }
+
+    /** All commands done: save the quest as cleared, then open the next place's quest screen. */
+    private void onQuestCommandsDone(QuestPanelViewModel.State state) {
+        if (state != null && state.questId != null) {
+            com.example.tobira.data.QuestRepository repository =
+                    com.example.tobira.data.QuestRepository.getInstance(this);
+            repository.startQuest(state.questId, state.questVersion)
+                    .thenCompose(ignored -> repository.savePhase(state.questId, state.questVersion,
+                            com.example.tobira.data.QuestEntities.Progress.COMPLETED))
+                    .whenComplete((ignored, error) -> {
+                        if (error != null) android.util.Log.w("QuestActivity", "Cannot save cleared quest", error);
+                    });
+        }
+        Place next = nextPlaceAfter(nextPlace);
+        TextView instruction = findViewById(R.id.command_instruction);
+        if (next == null) {
+            instruction.setText(R.string.command_route_clear);
+            return;
+        }
+        instruction.setText(getString(R.string.command_next_quest, next.name));
+        handler.postDelayed(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            startActivity(new Intent(this, QuestActivity.class)
+                    .putExtra(EXTRA_PLAN, routePlan.toBundle())
+                    .putExtra(EXTRA_NEXT_PLACE, next.toBundle())
+                    .putExtra(EXTRA_NAVIGATING, navigating));
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            finish();
+        }, NEXT_QUEST_DELAY_MS);
+    }
+
+    /** The place after {@code current} in the route (stops in order, then the destination), or null. */
+    private Place nextPlaceAfter(Place current) {
+        if (routePlan == null || current == null) return null;
+        java.util.List<Place> order = new java.util.ArrayList<>(routePlan.stops);
+        if (routePlan.destination != null) order.add(routePlan.destination);
+        for (int position = 0; position < order.size() - 1; position++) {
+            Place place = order.get(position);
+            boolean same = current.questId != null ? current.questId.equals(place.questId)
+                    : place.latitude == current.latitude && place.longitude == current.longitude;
+            if (same) return order.get(position + 1);
+        }
+        return null;
+    }
+
     private void renderArrival() {
         QuestArrivalUi.render(findViewById(R.id.quest_arrival_status),
                 findViewById(R.id.quest_return_button), arrivalModel.getState().getValue(), questHasContent);
+    }
+
+    /** Shrinks the blank line between paragraphs ("\n\n") to a small gap so less scrolling is needed. */
+    private static CharSequence compactParagraphs(String text) {
+        android.text.SpannableString spannable = new android.text.SpannableString(text);
+        int index = text.indexOf("\n\n");
+        while (index >= 0) {
+            spannable.setSpan(new android.text.style.RelativeSizeSpan(0.35f), index + 1, index + 2,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            index = text.indexOf("\n\n", index + 2);
+        }
+        return spannable;
     }
 
     @SuppressLint("MissingPermission")
@@ -200,7 +343,7 @@ public class QuestActivity extends AppCompatActivity {
                                 .build());
             }
             map.getLocationComponent().setLocationComponentEnabled(true);
-            map.getLocationComponent().setCameraMode(CameraMode.NONE);
+            if (!navigating) map.getLocationComponent().setCameraMode(CameraMode.NONE);
             map.getLocationComponent().setRenderMode(RenderMode.GPS);
 
             for (String provider : locationManager.getProviders(true)) {
@@ -230,17 +373,23 @@ public class QuestActivity extends AppCompatActivity {
         resumed = true;
         mapView.onResume();
         if (hasLocationPermission() && mapStyle != null) activateLocation();
+        commandPanel.resume();
     }
     @Override protected void onPause()   {
         resumed = false;
         if (locationManager != null) {
             try { locationManager.removeUpdates(locationListener); } catch (SecurityException ignored) {}
         }
+        commandPanel.pause();
         mapView.onPause();
         super.onPause();
     }
     @Override protected void onStop()    { mapView.onStop();    super.onStop(); }
-    @Override protected void onDestroy() { mapView.onDestroy(); super.onDestroy(); }
+    @Override protected void onDestroy() {
+        commandPanel.destroy();
+        mapView.onDestroy();
+        super.onDestroy();
+    }
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {

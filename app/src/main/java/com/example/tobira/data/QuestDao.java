@@ -18,6 +18,19 @@ public interface QuestDao {
             + "WHERE pq.questId = :id AND pq.questVersion = :version ORDER BY p.id")
     List<Place> getPlacesForQuest(String id, int version);
 
+    /** A quest and the location of one of its places (query result, not a table). */
+    class QuestLocation {
+        public String questId;
+        public int questVersion;
+        public double latitude;
+        public double longitude;
+    }
+
+    @Query("SELECT pq.questId AS questId, pq.questVersion AS questVersion, "
+            + "p.latitude AS latitude, p.longitude AS longitude "
+            + "FROM quest_places p INNER JOIN place_quests pq ON p.id = pq.placeId")
+    List<QuestLocation> getQuestLocations();
+
     @Insert(onConflict = OnConflictStrategy.IGNORE) void ensurePlaceLinks(List<PlaceQuest> links);
     @Insert(onConflict = OnConflictStrategy.IGNORE) long recordArrival(QuestArrival arrival);
 

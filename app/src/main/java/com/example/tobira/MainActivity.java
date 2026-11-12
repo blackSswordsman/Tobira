@@ -2,7 +2,6 @@ package com.example.tobira;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -42,9 +41,8 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.open_vehicle_info_button).setOnClickListener(view ->
                 startActivity(new android.content.Intent(this, VehicleInfoActivity.class)));
 
+        // Car flags are logged by VehicleFlagManager (tag "VehicleFlagManager"); no on-screen toast.
         vehicleFlagManager = new VehicleFlagManager(this);
-        vehicleFlagManager.setFlagListener((flag, areaId, value) -> runOnUiThread(() ->
-                Toast.makeText(this, flag.name(), Toast.LENGTH_SHORT).show()));
         carPermissionLauncher.launch(CAR_RUNTIME_PERMISSIONS);
     }
 

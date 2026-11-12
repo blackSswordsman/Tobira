@@ -109,6 +109,12 @@
     <string name="quest_panel_heading">クエスト・プレビュー</string>
     <string name="quest_placeholder_title">クエスト準備中</string>
     <string name="quest_placeholder_intro">ここにクエストの物語が表示されます。</string>
+    <string name="quest_none">この場所にクエストはありません</string>
+    <string name="command_step">%1$d. %2$s</string>
+    <string name="command_stop_first">停車してから操作してください</string>
+    <string name="command_all_clear">封印完了！すべてのコマンドに成功した</string>
+    <string name="command_next_quest">封印完了！次の場所「%1$s」へ</string>
+    <string name="command_route_clear">オロチを封じた！旅の完了です</string>
     <string name="quest_observations_heading">訪問時に注目すること</string>
     <string name="quest_placeholder_observations">・建物の模様や数\n\n・案内板に書かれた言い伝え\n\n・場所を象徴する印\n\n※表示内容は仮のサンプルです。</string>
     <string name="quest_panel_loading">クエストを読み込み中…</string>

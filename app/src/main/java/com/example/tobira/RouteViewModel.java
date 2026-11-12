@@ -46,6 +46,8 @@ public class RouteViewModel extends ViewModel {
             .followRedirects(false)
             .build();
     private static long nextRequestAt;
+    /** Last route that finished loading, shared so other screens (quest screen) can draw it. */
+    private static volatile DrivingRoute lastReadyRoute;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final MutableLiveData<State> state =
             new MutableLiveData<>(new State(Status.IDLE, null, 0));
@@ -60,7 +62,13 @@ public class RouteViewModel extends ViewModel {
         return state.getValue();
     }
 
+    /** The route most recently built on the map screen, or null if none / cleared. */
+    public static DrivingRoute lastReadyRoute() {
+        return lastReadyRoute;
+    }
+
     public void clear() {
+        lastReadyRoute = null;
         generation++;
         if (currentCall != null) currentCall.cancel();
         currentCall = null;
@@ -151,6 +159,7 @@ public class RouteViewModel extends ViewModel {
         main.post(() -> {
             if (token != generation) return;
             currentCall = null;
+            if (status == Status.READY) lastReadyRoute = route;
             state.setValue(new State(status, route, token));
         });
     }

@@ -18,8 +18,11 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/route_start"
+            android:textColor="#FFFFFFFF"
             android:textSize="20sp"
+            android:textStyle="bold"
             android:labelFor="@id/select_start" />
         <Button
             android:id="@+id/select_start"
@@ -37,7 +40,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/editor_order_hint"
-            android:text="@string/route_order_hint" />
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp"
+            android:text="@string/route_order_hint"
+            android:textColor="#E6FFFFFF"
+            android:textSize="16sp" />
         <LinearLayout
             android:id="@+id/stop_rows"
             android:layout_width="match_parent"
@@ -50,10 +57,14 @@
             android:minHeight="48dp"
             android:text="@string/add_stop" />
         <TextView
+            android:id="@+id/route_finish_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/route_finish"
+            android:textColor="#FFFFFFFF"
             android:textSize="20sp"
+            android:textStyle="bold"
             android:labelFor="@id/select_finish" />
         <Button
             android:id="@+id/select_finish"

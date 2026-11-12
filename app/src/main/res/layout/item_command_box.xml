@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One "Enter Your Command" step (tobira_UI.pptx slide 2): cut-corner box.
+     Driven by QuestCommandPanel. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="76dp"
+    android:layout_height="84dp">
+
+    <TextView
+        android:id="@+id/command_box"
+        style="@style/CommandBox" />
+</FrameLayout>
